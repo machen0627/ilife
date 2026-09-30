@@ -1,0 +1,1892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>iLife - Daily Routine Suite</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="iLife">
+  <meta name="theme-color" content="#000000">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons for native iOS iconography -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Leaflet CSS & JS for Live GPS Route Mapping -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            ios: {
+              red: '#FF453A',
+              orange: '#FF9F0A',
+              yellow: '#FFD60A',
+              green: '#30D158',
+              mint: '#63E6E2',
+              teal: '#40C8E0',
+              cyan: '#64D2FF',
+              blue: '#0A84FF',
+              indigo: '#5E5CE6',
+              purple: '#BF5AF2',
+              pink: '#FF375F',
+              brown: '#AC8E68',
+              gray1: '#8E8E93',
+              gray2: '#636366',
+              gray3: '#48484A',
+              gray4: '#3A3A3C',
+              gray5: '#2C2C2E',
+              gray6: '#1C1C1E',
+              darkBg: '#000000',
+              card: 'rgba(28, 28, 30, 0.75)',
+              elevated: 'rgba(44, 44, 46, 0.85)',
+            }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', 'Inter', 'Helvetica Neue', 'sans-serif'],
+            mono: ['SF Mono', 'Menlo', 'Monaco', 'Courier New', 'monospace']
+          },
+          boxShadow: {
+            'ios-card': '0 8px 30px rgba(0, 0, 0, 0.35)',
+            'ios-glow': '0 0 25px rgba(10, 132, 255, 0.25)',
+            'ios-sheet': '0 -10px 40px rgba(0, 0, 0, 0.6)',
+            'island': '0 8px 24px -2px rgba(0, 0, 0, 0.65)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    input, textarea, select {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .ios-glass {
+      backdrop-filter: blur(28px) saturate(190%);
+      -webkit-backdrop-filter: blur(28px) saturate(190%);
+    }
+
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .ios-btn:active {
+      transform: scale(0.96);
+      transition: transform 0.1s ease-out;
+    }
+
+    /* Safe Area insets */
+    .pt-safe-top {
+      padding-top: max(env(safe-area-inset-top, 0px), 12px);
+    }
+    .pb-safe-bottom {
+      padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px);
+    }
+
+    /* Leaflet Dark Customization (OpenStreetMap Keyless Tiles) */
+    .leaflet-tile {
+      filter: brightness(0.65) invert(1) contrast(2.2) hue-rotate(200deg) saturate(0.25) brightness(0.75);
+    }
+    .leaflet-control-zoom {
+      display: none;
+    }
+    .leaflet-control-attribution {
+      background: rgba(0,0,0,0.6) !important;
+      color: #888 !important;
+      font-size: 8px !important;
+    }
+    .leaflet-control-attribution a {
+      color: #aaa !important;
+    }
+
+    /* Pulsing GPS user location dot */
+    .gps-marker {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: #0A84FF;
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 14px #0A84FF;
+      animation: gpsPulse 2s infinite;
+    }
+    @keyframes gpsPulse {
+      0% { box-shadow: 0 0 0 0 rgba(10, 132, 255, 0.7); }
+      70% { box-shadow: 0 0 0 14px rgba(10, 132, 255, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(10, 132, 255, 0); }
+    }
+
+    /* Subtle gradient wallpaper */
+    .ios-wallpaper {
+      background: radial-gradient(circle at 10% 10%, #151b2e 0%, #0d0f17 40%, #050508 100%);
+    }
+  </style>
+</head>
+
+<body class="bg-neutral-950 text-white font-sans antialiased min-h-screen flex items-center justify-center p-0 md:p-6 overflow-x-hidden">
+
+  <!-- Desktop Device Controls (Visible only on desktop screens) -->
+  <div class="hidden md:flex fixed top-4 right-4 z-50 bg-neutral-900/90 text-white rounded-full px-4 py-2 text-xs items-center gap-3 backdrop-blur-md shadow-2xl border border-white/10">
+    <span class="text-neutral-400 font-medium">Device:</span>
+    <button onclick="togglePhoneFrame()" class="hover:text-ios-blue transition-colors flex items-center gap-1.5 font-semibold">
+      <i class="fa-solid fa-mobile-screen"></i> <span id="frame-toggle-label">iPhone Frame</span>
+    </button>
+  </div>
+
+  <!-- Main iPhone Mockup Shell -->
+  <div id="phone-container" class="relative w-full max-w-full md:max-w-[420px] h-[100dvh] md:h-[880px] bg-black md:rounded-[56px] md:shadow-[0_30px_90px_rgba(0,0,0,0.9)] md:border-[12px] md:border-neutral-800 overflow-hidden flex flex-col justify-between transition-all duration-300">
+    
+    <!-- iPhone Speaker grill for frame -->
+    <div class="hidden md:block absolute top-3 left-1/2 -translate-x-1/2 w-20 h-1 bg-neutral-800 rounded-full z-50 pointer-events-none"></div>
+
+    <!-- Inner Screen Area -->
+    <div id="app-screen" class="relative w-full h-full flex flex-col ios-wallpaper text-white overflow-hidden">
+
+      <!-- TOP STATUS BAR & DYNAMIC ISLAND -->
+      <header class="relative z-40 w-full pt-safe-top pt-2.5 px-6 flex items-center justify-between text-xs font-semibold tracking-tight text-white select-none">
+        <!-- Time -->
+        <span id="status-clock" class="w-14 text-left font-semibold text-[13px] tracking-tight">9:41</span>
+
+        <!-- Dynamic Island Capsule -->
+        <div id="dynamic-island" onclick="handleIslandClick()" class="cursor-pointer bg-black text-white shadow-island h-[32px] px-3.5 rounded-full flex items-center justify-between gap-2.5 transition-all duration-300 border border-neutral-800/80 active:scale-95">
+          <div class="flex items-center gap-1.5 text-[11px]">
+            <span id="island-dot" class="w-2 h-2 rounded-full bg-ios-green animate-pulse"></span>
+            <span id="island-title" class="font-medium text-[11px] text-white">Daily Routine</span>
+          </div>
+          <span id="island-status-badge" class="text-[10px] font-mono text-ios-mint font-semibold">Active</span>
+        </div>
+
+        <!-- System Icons (Signal, Wifi, Battery) -->
+        <div class="w-14 flex items-center justify-end gap-1.5 text-neutral-200">
+          <i class="fa-solid fa-signal text-[10px]"></i>
+          <i class="fa-solid fa-wifi text-[11px]"></i>
+          <div class="flex items-center gap-0.5">
+            <div class="w-5 h-2.5 border border-white/80 rounded-[3px] p-[1px] flex items-center">
+              <div id="battery-fill" class="h-full bg-white rounded-[1.5px] w-[90%]"></div>
+            </div>
+            <div class="w-[1px] h-1 bg-white/80 rounded-r-sm"></div>
+          </div>
+        </div>
+      </header>
+
+      <!-- MAIN SCROLLABLE SCREENS -->
+      <main class="relative flex-1 overflow-y-auto hide-scrollbar px-4 pt-2 pb-24">
+        
+        <!-- ================= VIEW 1: TODAY & TIMELINE ================= -->
+        <section id="tab-today" class="tab-view block space-y-4">
+          
+          <!-- Top Greeting & Date Header -->
+          <div class="flex items-center justify-between pt-1">
+            <div>
+              <p id="today-formatted-date" class="text-[11px] font-bold uppercase tracking-wider text-ios-blue">Tuesday, September 29</p>
+              <h1 id="today-greeting" class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                Good Morning <span id="circadian-icon" class="text-lg">☀️</span>
+              </h1>
+            </div>
+            <button onclick="openLogModal()" class="ios-btn w-9 h-9 rounded-full bg-ios-blue text-white flex items-center justify-center shadow-lg active:opacity-80" title="Quick Add">
+              <i class="fa-solid fa-plus text-sm"></i>
+            </button>
+          </div>
+
+          <!-- Circadian Wake/Sleep Card -->
+          <div class="bg-ios-card ios-glass border border-white/10 rounded-3xl p-4 shadow-ios-card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-moon text-ios-indigo"></i> Sleep & Wake Flow
+              </span>
+              <button onclick="toggleGoodnightState()" id="goodnight-btn" class="ios-btn text-[11px] font-semibold px-3 py-1 rounded-full bg-ios-indigo/30 text-indigo-300 border border-ios-indigo/40 flex items-center gap-1">
+                <i class="fa-solid fa-bed"></i> <span id="goodnight-btn-label">Goodnight</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <!-- Wake Touch Info -->
+              <div class="bg-black/30 border border-white/5 rounded-2xl p-3 flex flex-col justify-between">
+                <div class="flex items-center justify-between text-neutral-400 text-xs">
+                  <span>First Touch</span>
+                  <i class="fa-solid fa-sun text-ios-yellow"></i>
+                </div>
+                <div class="mt-2">
+                  <p id="wake-time-display" class="text-xl font-bold text-white tracking-tight">--:--</p>
+                  <p id="wake-status-badge" class="text-[10px] text-neutral-400 font-medium">Awaiting touch</p>
+                </div>
+              </div>
+
+              <!-- Sleep Calculation Info -->
+              <div class="bg-black/30 border border-white/5 rounded-2xl p-3 flex flex-col justify-between">
+                <div class="flex items-center justify-between text-neutral-400 text-xs">
+                  <span>Last Sleep</span>
+                  <i class="fa-solid fa-bed text-ios-indigo"></i>
+                </div>
+                <div class="mt-2">
+                  <p id="sleep-duration-display" class="text-xl font-bold text-white tracking-tight">--</p>
+                  <p id="sleep-quality-badge" class="text-[10px] text-neutral-400 font-medium">Awaiting bedtime</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Last iPhone Interaction Stamp -->
+            <div class="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between text-[11px] text-neutral-400">
+              <span class="flex items-center gap-1.5">
+                <i class="fa-solid fa-mobile-screen text-[10px] text-ios-blue"></i>
+                Last touch: <span id="last-touch-time" class="text-neutral-300 font-medium">Just now</span>
+              </span>
+              <button onclick="openWakeEditModal()" class="text-ios-blue text-[11px] hover:underline">Adjust</button>
+            </div>
+          </div>
+
+          <!-- Daily Goal Rings (350 kcal / 30 mins) -->
+          <div class="bg-ios-card ios-glass border border-white/10 rounded-3xl p-4 shadow-ios-card flex items-center gap-4">
+            
+            <!-- Concentric SVG Progress Rings -->
+            <div class="relative w-28 h-28 flex-shrink-0 flex items-center justify-center">
+              <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <!-- Background Tracks -->
+                <circle cx="50" cy="50" r="40" stroke="rgba(255, 55, 95, 0.2)" stroke-width="7" fill="none"></circle>
+                <circle cx="50" cy="50" r="30" stroke="rgba(48, 209, 88, 0.2)" stroke-width="7" fill="none"></circle>
+                <circle cx="50" cy="50" r="20" stroke="rgba(64, 200, 224, 0.2)" stroke-width="7" fill="none"></circle>
+
+                <!-- Calorie Ring (Target: 350 kcal) - Pink -->
+                <!-- Circ = 2 * PI * 40 = 251.32 -->
+                <circle id="ring-calories" cx="50" cy="50" r="40" stroke="#FF375F" stroke-width="7" fill="none"
+                        stroke-dasharray="251.32" stroke-dashoffset="251.32" stroke-linecap="round" class="transition-all duration-700"></circle>
+
+                <!-- Workout/Walk Minutes Ring (Target: 30 mins) - Green -->
+                <!-- Circ = 2 * PI * 30 = 188.49 -->
+                <circle id="ring-minutes" cx="50" cy="50" r="30" stroke="#30D158" stroke-width="7" fill="none"
+                        stroke-dasharray="188.49" stroke-dashoffset="188.49" stroke-linecap="round" class="transition-all duration-700"></circle>
+
+                <!-- Movement / Routine Checkpoint Ring - Cyan -->
+                <!-- Circ = 2 * PI * 20 = 125.66 -->
+                <circle id="ring-routine" cx="50" cy="50" r="20" stroke="#40C8E0" stroke-width="7" fill="none"
+                        stroke-dasharray="125.66" stroke-dashoffset="125.66" stroke-linecap="round" class="transition-all duration-700"></circle>
+              </svg>
+              <!-- Center Icon -->
+              <div class="absolute text-center flex flex-col items-center">
+                <i class="fa-solid fa-fire text-ios-pink text-xs drop-shadow"></i>
+              </div>
+            </div>
+
+            <!-- Ring Readouts & Targets -->
+            <div class="flex-1 space-y-2">
+              <div>
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-neutral-300 font-semibold flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-ios-pink"></span> Move Burn
+                  </span>
+                  <span class="font-bold text-white"><span id="metric-calories-burned">0</span> / 350 <span class="text-[10px] text-neutral-400">kcal</span></span>
+                </div>
+                <div class="w-full bg-white/10 h-1.5 rounded-full mt-1 overflow-hidden">
+                  <div id="bar-calories" class="bg-ios-pink h-full rounded-full w-0 transition-all duration-500"></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-neutral-300 font-semibold flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-ios-green"></span> Activity Time
+                  </span>
+                  <span class="font-bold text-white"><span id="metric-workout-mins">0</span> / 30 <span class="text-[10px] text-neutral-400">min</span></span>
+                </div>
+                <div class="w-full bg-white/10 h-1.5 rounded-full mt-1 overflow-hidden">
+                  <div id="bar-minutes" class="bg-ios-green h-full rounded-full w-0 transition-all duration-500"></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-neutral-300 font-semibold flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-ios-teal"></span> Routine
+                  </span>
+                  <span id="metric-routine-score" class="font-bold text-ios-teal">0/4 Done</span>
+                </div>
+                <div class="w-full bg-white/10 h-1.5 rounded-full mt-1 overflow-hidden">
+                  <div id="bar-routine" class="bg-ios-teal h-full rounded-full w-0 transition-all duration-500"></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="grid grid-cols-4 gap-2">
+            <button onclick="switchTab('walk')" class="ios-btn bg-ios-card border border-white/10 rounded-2xl p-2.5 flex flex-col items-center gap-1 shadow hover:bg-white/10 transition">
+              <div class="w-9 h-9 rounded-full bg-ios-green/20 text-ios-green flex items-center justify-center text-sm">
+                <i class="fa-solid fa-person-walking"></i>
+              </div>
+              <span class="text-[11px] font-medium text-neutral-300">Track Walk</span>
+            </button>
+
+            <button onclick="switchTab('drive')" class="ios-btn bg-ios-card border border-white/10 rounded-2xl p-2.5 flex flex-col items-center gap-1 shadow hover:bg-white/10 transition">
+              <div class="w-9 h-9 rounded-full bg-ios-blue/20 text-ios-blue flex items-center justify-center text-sm">
+                <i class="fa-solid fa-car-side"></i>
+              </div>
+              <span class="text-[11px] font-medium text-neutral-300">Drive HUD</span>
+            </button>
+
+            <button onclick="openLogModal()" class="ios-btn bg-ios-card border border-white/10 rounded-2xl p-2.5 flex flex-col items-center gap-1 shadow hover:bg-white/10 transition">
+              <div class="w-9 h-9 rounded-full bg-ios-pink/20 text-ios-pink flex items-center justify-center text-sm">
+                <i class="fa-solid fa-dumbbell"></i>
+              </div>
+              <span class="text-[11px] font-medium text-neutral-300">Log Sport</span>
+            </button>
+
+            <button onclick="switchTab('sleep')" class="ios-btn bg-ios-card border border-white/10 rounded-2xl p-2.5 flex flex-col items-center gap-1 shadow hover:bg-white/10 transition">
+              <div class="w-9 h-9 rounded-full bg-ios-indigo/20 text-ios-indigo flex items-center justify-center text-sm">
+                <i class="fa-solid fa-bed"></i>
+              </div>
+              <span class="text-[11px] font-medium text-neutral-300">Routine</span>
+            </button>
+          </div>
+
+          <!-- 24-Hour Routine Timeline -->
+          <div class="bg-ios-card ios-glass border border-white/10 rounded-3xl p-4 shadow-ios-card">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400">Today's Timeline</h3>
+              <span id="timeline-count-badge" class="text-[11px] text-ios-blue font-medium">4 logged items</span>
+            </div>
+
+            <!-- Timeline items container -->
+            <div id="timeline-feed" class="space-y-3 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-white/10">
+              <!-- Dynamically populated timeline elements -->
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ================= VIEW 2: WORKOUTS ================= -->
+        <section id="tab-workouts" class="tab-view hidden space-y-4">
+          <div class="flex items-center justify-between pt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              Workouts
+            </h1>
+            <button onclick="openLogModal()" class="ios-btn text-xs font-semibold bg-ios-pink text-white px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow active:opacity-80">
+              <i class="fa-solid fa-plus text-[10px]"></i> Log Activity
+            </button>
+          </div>
+
+          <!-- Workout Goals Card -->
+          <div class="bg-gradient-to-br from-pink-900/40 via-neutral-900/70 to-neutral-900/90 border border-ios-pink/30 rounded-3xl p-4 shadow-ios-card">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-pink-300">Daily Exercise Progress</span>
+              <span class="text-xs font-bold text-ios-pink"><span id="workouts-total-kcal">0</span> / 350 kcal</span>
+            </div>
+            <div class="w-full bg-white/10 h-2 rounded-full overflow-hidden mb-3">
+              <div id="workouts-kcal-progress" class="bg-ios-pink h-full rounded-full w-0"></div>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+              <div class="bg-black/30 rounded-2xl p-2">
+                <p class="text-neutral-400 text-[10px]">Active Duration</p>
+                <p id="workouts-duration-label" class="font-bold text-white mt-0.5">0 min</p>
+              </div>
+              <div class="bg-black/30 rounded-2xl p-2">
+                <p class="text-neutral-400 text-[10px]">Activities</p>
+                <p id="workouts-count-label" class="font-bold text-white mt-0.5">0 sessions</p>
+              </div>
+              <div class="bg-black/30 rounded-2xl p-2">
+                <p class="text-neutral-400 text-[10px]">Goal Status</p>
+                <p id="workouts-status-label" class="font-bold text-ios-yellow mt-0.5">30 min left</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Launch Sport Tiles -->
+          <div>
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-2">Quick Log by Sport</h3>
+            <div class="grid grid-cols-3 gap-2.5">
+              <button onclick="presetSportLog('Strength', 35, 210, 'fa-dumbbell', 'ios-pink')" class="ios-btn bg-ios-card border border-white/10 rounded-2xl p-3 flex flex-col items-center gap-1.5 text-center hover:bg-white/10">
+                <i class="fa-solid fa-dumbbell text-ios-pink text-xl"></i>
+                <span class="text-xs font-semibold">Strength</span>
+                <span class="text-[9px] text-neutral-400">~210 kcal</span>
+              </button>
+              <button onclick="presetSportLog('HIIT', 20, 190, 'fa-bolt', 'ios-orange')" class="ios-btn bg-ios-card border border-white/10 rounded-2xl p-3 flex flex-col items-center gap-1.5 text-center hover:bg-white/10">
+                <i class="fa-solid fa-bolt text-ios-orange text-xl"></i>
+                <span class="text-xs font-semibold">HIIT</span>
+                <span class="text-[9px] text-neutral-400">~190 kcal</span>
+              </button>
+              <button onclick="presetSportLog('Skating', 30, 220, 'fa-person-skating', 'ios-cyan')" class="ios-btn bg-ios-card border border-white/10 rounded-2xl p-3 flex flex-col items-center gap-1.5 text-center hover:bg-white/10">
+                <i class="fa-solid fa-person-skating text-ios-cyan text-xl"></i>
+                <span class="text-xs font-semibold">Skating</span>
+                <span class="text-[9px] text-neutral-400">~220 kcal</span>
+              </button>
+              <button onclick="presetSportLog('Swimming', 30, 250, 'fa-person-swimming', 'ios-teal')" class="ios-btn bg-ios-card border border-white/10 rounded-2xl p-3 flex flex-col items-center gap-1.5 text-center hover:bg-white/10">
+                <i class="fa-solid fa-person-swimming text-ios-teal text-xl"></i>
+                <span class="text-xs font-semibold">Swimming</span>
+                <span class="text-[9px] text-neutral-400">~250 kcal</span>
+              </button>
+              <button onclick="presetSportLog('Running', 25, 260, 'fa-person-running', 'ios-yellow')" class="ios-btn bg-ios-card border border-white/10 rounded-2xl p-3 flex flex-col items-center gap-1.5 text-center hover:bg-white/10">
+                <i class="fa-solid fa-person-running text-ios-yellow text-xl"></i>
+                <span class="text-xs font-semibold">Running</span>
+                <span class="text-[9px] text-neutral-400">~260 kcal</span>
+              </button>
+              <button onclick="switchTab('walk')" class="ios-btn bg-ios-card border border-white/10 rounded-2xl p-3 flex flex-col items-center gap-1.5 text-center hover:bg-white/10">
+                <i class="fa-solid fa-person-walking text-ios-green text-xl"></i>
+                <span class="text-xs font-semibold">GPS Walk</span>
+                <span class="text-[9px] text-neutral-400">Live Map</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Logged Activities History List -->
+          <div class="bg-ios-card ios-glass border border-white/10 rounded-3xl p-4 shadow-ios-card">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-2">Today's Sessions</h3>
+            <div id="workouts-history-list" class="divide-y divide-white/10">
+              <!-- Dynamically populated workout history -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= VIEW 3: LIVE GPS WALK ================= -->
+        <section id="tab-walk" class="tab-view hidden space-y-4">
+          <div class="flex items-center justify-between pt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              Walk Tracker
+            </h1>
+            <span id="walk-gps-status" class="text-[11px] bg-white/10 px-2.5 py-1 rounded-full text-ios-green font-medium flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-ios-green animate-pulse"></span> GPS Ready
+            </span>
+          </div>
+
+          <!-- Walk Route Map Card -->
+          <div class="relative w-full h-64 rounded-3xl overflow-hidden border border-white/15 shadow-ios-card">
+            <div id="walk-map" class="w-full h-full bg-neutral-900"></div>
+
+            <!-- Overlaid Map HUD overlay -->
+            <div class="absolute top-3 left-3 right-3 z-[400] flex justify-between pointer-events-none">
+              <div class="bg-black/75 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 text-xs font-semibold text-white flex items-center gap-1.5 shadow">
+                <i class="fa-solid fa-location-arrow text-ios-blue text-[10px]"></i>
+                <span id="walk-location-label">Locating path...</span>
+              </div>
+              <button onclick="recenterWalkMap()" class="pointer-events-auto bg-black/75 backdrop-blur-md w-8 h-8 rounded-full border border-white/20 text-white flex items-center justify-center text-xs active:scale-95 shadow">
+                <i class="fa-solid fa-crosshairs"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Walk Live Statistics Strip -->
+          <div class="grid grid-cols-4 gap-2 text-center">
+            <div class="bg-ios-card border border-white/10 rounded-2xl p-2.5">
+              <p class="text-[10px] text-neutral-400 uppercase font-semibold">Time</p>
+              <p id="walk-elapsed-time" class="font-mono text-base font-bold text-white mt-0.5">00:00</p>
+            </div>
+            <div class="bg-ios-card border border-white/10 rounded-2xl p-2.5">
+              <p class="text-[10px] text-neutral-400 uppercase font-semibold">Distance</p>
+              <p id="walk-distance" class="text-base font-bold text-ios-mint mt-0.5">0.00 <span class="text-[10px] font-normal">km</span></p>
+            </div>
+            <div class="bg-ios-card border border-white/10 rounded-2xl p-2.5">
+              <p class="text-[10px] text-neutral-400 uppercase font-semibold">Pace</p>
+              <p id="walk-pace" class="font-mono text-base font-bold text-ios-cyan mt-0.5">--'--"</p>
+            </div>
+            <div class="bg-ios-card border border-white/10 rounded-2xl p-2.5">
+              <p class="text-[10px] text-neutral-400 uppercase font-semibold">Calories</p>
+              <p id="walk-calories" class="text-base font-bold text-ios-pink mt-0.5">0 <span class="text-[10px] font-normal">kcal</span></p>
+            </div>
+          </div>
+
+          <!-- Walk Controller Buttons -->
+          <div class="flex items-center gap-3">
+            <button id="walk-toggle-btn" onclick="toggleWalkTracking()" class="ios-btn flex-1 py-3.5 bg-ios-green hover:bg-green-600 text-black font-bold text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2 transition active:scale-98">
+              <i id="walk-toggle-icon" class="fa-solid fa-play"></i> <span id="walk-toggle-label">Start Walk</span>
+            </button>
+            <button id="walk-finish-btn" onclick="finishWalkSession()" disabled class="ios-btn py-3.5 px-6 bg-white/10 disabled:opacity-40 text-white font-semibold text-sm rounded-2xl border border-white/15 flex items-center justify-center gap-1.5 transition">
+              <i class="fa-solid fa-flag-checkered"></i> Finish
+            </button>
+          </div>
+
+          <!-- Demo / Simulation Mode helper for desktop testing -->
+          <div class="bg-black/30 border border-white/5 rounded-2xl p-3 flex items-center justify-between text-xs text-neutral-400">
+            <span>Desktop or Indoor testing?</span>
+            <button onclick="toggleSimulateWalk()" id="walk-sim-btn" class="ios-btn text-ios-blue hover:underline font-semibold">
+              Simulate GPS Movement
+            </button>
+          </div>
+        </section>
+
+        <!-- ================= VIEW 4: LIVE DRIVE HUD ================= -->
+        <section id="tab-drive" class="tab-view hidden space-y-4">
+          <div class="flex items-center justify-between pt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              Drive Mode
+            </h1>
+            <span id="drive-gps-status" class="text-[11px] bg-white/10 px-2.5 py-1 rounded-full text-ios-blue font-medium flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-ios-blue"></span> Vehicle Mode
+            </span>
+          </div>
+
+          <!-- Car Heads-Up Display (Speedometer & Odometer) -->
+          <div class="bg-gradient-to-b from-neutral-900/90 to-black border border-white/15 rounded-3xl p-5 shadow-ios-card text-center relative overflow-hidden">
+            <div class="flex items-center justify-between text-xs text-neutral-400 mb-2">
+              <span class="flex items-center gap-1.5"><i class="fa-solid fa-gauge-high text-ios-blue"></i> Live Speed</span>
+              <button onclick="toggleSpeedUnit()" id="speed-unit-btn" class="ios-btn bg-white/10 px-2.5 py-0.5 rounded-full text-[10px] text-white font-semibold hover:bg-white/20">
+                KM/H
+              </button>
+            </div>
+
+            <!-- Big Digital Speedometer Readout -->
+            <div class="py-4 my-1">
+              <span id="drive-speed-display" class="font-mono text-7xl font-extralight tracking-tighter text-white drop-shadow">0</span>
+              <span id="drive-speed-unit" class="text-xs uppercase tracking-widest text-ios-blue font-bold block mt-1">KM / H</span>
+            </div>
+
+            <!-- Odometer & Elapsed Time -->
+            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-white/10 text-left">
+              <div>
+                <p class="text-[10px] uppercase font-semibold text-neutral-400">Trip Distance</p>
+                <p id="drive-distance-display" class="text-xl font-bold text-white tracking-tight">0.0 <span class="text-xs font-normal text-neutral-400">km</span></p>
+              </div>
+              <div class="text-right">
+                <p class="text-[10px] uppercase font-semibold text-neutral-400">Drive Duration</p>
+                <p id="drive-time-display" class="font-mono text-xl font-bold text-white tracking-tight">00:00</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Drive Route Mini-Map -->
+          <div class="relative w-full h-44 rounded-3xl overflow-hidden border border-white/15 shadow-ios-card">
+            <div id="drive-map" class="w-full h-full bg-neutral-900"></div>
+            <div class="absolute bottom-2 left-2 z-[400] bg-black/80 px-2.5 py-1 rounded-full text-[10px] text-white border border-white/10">
+              <i class="fa-solid fa-road text-ios-blue mr-1"></i> Live Commute Track
+            </div>
+          </div>
+
+          <!-- Drive Session Controls -->
+          <div class="flex items-center gap-3">
+            <button id="drive-toggle-btn" onclick="toggleDriveTracking()" class="ios-btn flex-1 py-3.5 bg-ios-blue hover:bg-blue-600 text-white font-bold text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2 transition active:scale-98">
+              <i id="drive-toggle-icon" class="fa-solid fa-car"></i> <span id="drive-toggle-label">Start Trip</span>
+            </button>
+            <button id="drive-finish-btn" onclick="openEndTripModal()" disabled class="ios-btn py-3.5 px-6 bg-white/10 disabled:opacity-40 text-white font-semibold text-sm rounded-2xl border border-white/15 flex items-center justify-center gap-1.5 transition">
+              <i class="fa-solid fa-stop"></i> End Trip
+            </button>
+          </div>
+
+          <!-- Drive Simulation Helper -->
+          <div class="bg-black/30 border border-white/5 rounded-2xl p-3 flex items-center justify-between text-xs text-neutral-400">
+            <span>Test vehicle movement</span>
+            <button onclick="toggleSimulateDrive()" id="drive-sim-btn" class="ios-btn text-ios-blue hover:underline font-semibold">
+              Simulate Driving Speed
+            </button>
+          </div>
+        </section>
+
+        <!-- ================= VIEW 5: SLEEP & ROUTINE ================= -->
+        <section id="tab-sleep" class="tab-view hidden space-y-4">
+          <div class="flex items-center justify-between pt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              Sleep & Routine
+            </h1>
+            <span class="text-xs bg-ios-indigo/30 text-indigo-300 border border-ios-indigo/40 px-3 py-1 rounded-full font-medium">
+              Target: 8.0h
+            </span>
+          </div>
+
+          <!-- Sleep Architecture Dashboard -->
+          <div class="bg-ios-card ios-glass border border-white/10 rounded-3xl p-4 shadow-ios-card space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-neutral-400">Circadian Window</span>
+              <span class="text-xs text-ios-mint font-semibold">Optimal Rhythm</span>
+            </div>
+
+            <!-- Visual Sleep Window Bar -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs font-medium">
+                <span class="text-indigo-300">🌙 Bed: 11:15 PM</span>
+                <span class="text-yellow-300">☀️ Wake: 6:45 AM</span>
+              </div>
+              <div class="w-full h-4 bg-white/10 rounded-full relative overflow-hidden flex">
+                <div class="w-[20%] bg-transparent"></div>
+                <div class="w-[60%] bg-gradient-to-r from-ios-indigo via-ios-purple to-ios-blue h-full rounded-full flex items-center justify-center text-[9px] font-bold text-white shadow">
+                  7 hrs 30 mins asleep
+                </div>
+                <div class="w-[20%] bg-transparent"></div>
+              </div>
+              <div class="flex justify-between text-[10px] text-neutral-400">
+                <span>10 PM</span>
+                <span>2 AM</span>
+                <span>6 AM</span>
+                <span>10 AM</span>
+              </div>
+            </div>
+
+            <!-- In-App Auto Tracking Explanation Card -->
+            <div class="bg-black/40 border border-white/5 rounded-2xl p-3 text-xs text-neutral-300 leading-relaxed">
+              <p class="font-semibold text-white flex items-center gap-1.5 mb-1">
+                <i class="fa-solid fa-wand-magic-sparkles text-ios-yellow"></i> How Auto-Tracking Works
+              </p>
+              Your iPhone wake-up is detected automatically from your first app interaction each morning. At night, tap <strong>Goodnight</strong> or simply put your phone to sleep; your last touch calculates your full circadian cycle!
+            </div>
+          </div>
+
+          <!-- Routine Consistency Toggles -->
+          <div class="bg-ios-card ios-glass border border-white/10 rounded-3xl p-4 shadow-ios-card">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400">Today's Routine Checkpoints</h3>
+              <button onclick="resetAllAppData()" class="text-[10px] text-ios-red/80 hover:text-ios-red flex items-center gap-1 font-medium transition">
+                <i class="fa-solid fa-arrows-rotate"></i> Reset All Data
+              </button>
+            </div>
+            
+            <div class="space-y-2.5">
+              <div class="flex items-center justify-between p-2.5 rounded-2xl bg-white/5">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-ios-yellow/20 text-ios-yellow flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-sun"></i>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold text-white">Morning Wake Up</p>
+                    <p class="text-[10px] text-neutral-400">Target before 7:15 AM</p>
+                  </div>
+                </div>
+                <span id="routine-wake-tag" class="text-xs font-bold text-neutral-400">Pending</span>
+              </div>
+
+              <div class="flex items-center justify-between p-2.5 rounded-2xl bg-white/5">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-ios-green/20 text-ios-green flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-person-walking"></i>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold text-white">30 Min Activity Target</p>
+                    <p class="text-[10px] text-neutral-400">Workout & Walk combined</p>
+                  </div>
+                </div>
+                <span id="routine-move-tag" class="text-xs font-bold text-neutral-400">0 / 30m</span>
+              </div>
+
+              <div class="flex items-center justify-between p-2.5 rounded-2xl bg-white/5">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-ios-pink/20 text-ios-pink flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-fire"></i>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold text-white">350 Kcal Target</p>
+                    <p class="text-[10px] text-neutral-400">Calorie burn goal</p>
+                  </div>
+                </div>
+                <span id="routine-kcal-tag" class="text-xs font-bold text-neutral-400">0 / 350 kcal</span>
+              </div>
+
+              <div class="flex items-center justify-between p-2.5 rounded-2xl bg-white/5">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-ios-indigo/20 text-ios-indigo flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-moon"></i>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold text-white">Wind Down & Bedtime</p>
+                    <p class="text-[10px] text-neutral-400">Target 11:00 PM</p>
+                  </div>
+                </div>
+                <button onclick="toggleGoodnightState()" class="text-xs text-ios-indigo hover:underline font-semibold">Tap to Bed</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- BOTTOM: FROSTED GLASS TAB BAR -->
+      <nav class="absolute bottom-0 left-0 right-0 z-40 bg-neutral-900/85 ios-glass border-t border-white/10 px-4 pt-2 pb-safe-bottom flex items-center justify-around text-neutral-400 select-none">
+        
+        <!-- Tab 1: Today -->
+        <button onclick="switchTab('today')" id="nav-btn-today" class="ios-btn flex flex-col items-center gap-0.5 text-ios-blue transition-colors group">
+          <i class="fa-solid fa-house text-lg group-hover:scale-110 transition-transform"></i>
+          <span class="text-[10px] font-semibold tracking-tight">Today</span>
+        </button>
+
+        <!-- Tab 2: Workouts -->
+        <button onclick="switchTab('workouts')" id="nav-btn-workouts" class="ios-btn flex flex-col items-center gap-0.5 text-neutral-400 hover:text-white transition-colors group">
+          <i class="fa-solid fa-dumbbell text-lg group-hover:scale-110 transition-transform"></i>
+          <span class="text-[10px] font-semibold tracking-tight">Workouts</span>
+        </button>
+
+        <!-- Tab 3: Walk Map -->
+        <button onclick="switchTab('walk')" id="nav-btn-walk" class="ios-btn flex flex-col items-center gap-0.5 text-neutral-400 hover:text-white transition-colors group">
+          <i class="fa-solid fa-person-walking text-lg group-hover:scale-110 transition-transform"></i>
+          <span class="text-[10px] font-semibold tracking-tight">Walk</span>
+        </button>
+
+        <!-- Tab 4: Drive HUD -->
+        <button onclick="switchTab('drive')" id="nav-btn-drive" class="ios-btn flex flex-col items-center gap-0.5 text-neutral-400 hover:text-white transition-colors group">
+          <i class="fa-solid fa-car-side text-lg group-hover:scale-110 transition-transform"></i>
+          <span class="text-[10px] font-semibold tracking-tight">Drive</span>
+        </button>
+
+        <!-- Tab 5: Sleep & Routine -->
+        <button onclick="switchTab('sleep')" id="nav-btn-sleep" class="ios-btn flex flex-col items-center gap-0.5 text-neutral-400 hover:text-white transition-colors group">
+          <i class="fa-solid fa-bed text-lg group-hover:scale-110 transition-transform"></i>
+          <span class="text-[10px] font-semibold tracking-tight">Sleep</span>
+        </button>
+
+      </nav>
+
+      <!-- iPhone Home Indicator Bar -->
+      <div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-36 h-1 bg-white/50 rounded-full z-50 pointer-events-none"></div>
+
+      <!-- MODAL 1: LOG WORKOUT ACTION SHEET -->
+      <div id="workout-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-end justify-center transition-all duration-300">
+        <div class="w-full max-w-md bg-neutral-900 border-t border-white/20 rounded-t-[34px] p-5 text-white shadow-ios-sheet">
+          <div class="w-12 h-1 bg-white/25 rounded-full mx-auto mb-4 cursor-pointer" onclick="closeLogModal()"></div>
+          
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-bold">Log Activity</h2>
+            <button onclick="closeLogModal()" class="text-xs text-neutral-400 hover:text-white">Cancel</button>
+          </div>
+
+          <form id="workout-form" onsubmit="handleManualWorkoutSubmit(event)" class="space-y-3.5">
+            <div>
+              <label class="text-[11px] font-semibold uppercase text-neutral-400 block mb-1">Sport / Workout Type</label>
+              <select id="input-sport-type" onchange="autoFillCalorieEstimate()" class="w-full bg-neutral-800 border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-ios-pink">
+                <option value="Strength">Strength Training</option>
+                <option value="HIIT">HIIT & Circuit</option>
+                <option value="Skating">Skating</option>
+                <option value="Swimming">Swimming</option>
+                <option value="Running">Running</option>
+                <option value="Walking">Walking</option>
+                <option value="Cycling">Cycling</option>
+                <option value="Yoga">Yoga & Mobility</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-[11px] font-semibold uppercase text-neutral-400 block mb-1">Duration (Mins)</label>
+                <input type="number" id="input-duration" min="1" max="360" value="30" oninput="autoFillCalorieEstimate()" required
+                       class="w-full bg-neutral-800 border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-ios-pink">
+              </div>
+              <div>
+                <label class="text-[11px] font-semibold uppercase text-neutral-400 block mb-1">Calories (Kcal)</label>
+                <input type="number" id="input-calories" min="1" max="3000" value="180" required
+                       class="w-full bg-neutral-800 border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-ios-pink">
+              </div>
+            </div>
+
+            <div>
+              <label class="text-[11px] font-semibold uppercase text-neutral-400 block mb-1">Notes / Intensity</label>
+              <input type="text" id="input-notes" placeholder="e.g. Chest day, Outdoor track, Fast tempo"
+                     class="w-full bg-neutral-800 border border-white/10 rounded-2xl px-4 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-ios-pink">
+            </div>
+
+            <div class="pt-2">
+              <button type="submit" class="w-full py-3.5 bg-ios-pink hover:bg-pink-600 text-white font-bold text-sm rounded-2xl shadow-lg transition">
+                Add to Daily Rings
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- MODAL 2: ADJUST WAKE TIME -->
+      <div id="wake-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-end justify-center transition-all duration-300">
+        <div class="w-full max-w-md bg-neutral-900 border-t border-white/20 rounded-t-[34px] p-5 text-white shadow-ios-sheet">
+          <div class="w-12 h-1 bg-white/25 rounded-full mx-auto mb-4 cursor-pointer" onclick="closeWakeEditModal()"></div>
+          
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-bold">Adjust Today's Wake Time</h2>
+            <button onclick="closeWakeEditModal()" class="text-xs text-neutral-400 hover:text-white">Cancel</button>
+          </div>
+
+          <div class="space-y-4">
+            <p class="text-xs text-neutral-400 leading-relaxed">
+              Your iPhone auto-detected your wake time from your first touch this morning. If you got up earlier, pick your actual time below:
+            </p>
+            <div>
+              <input type="time" id="input-wake-time" class="w-full bg-neutral-800 border border-white/10 rounded-2xl px-4 py-3 text-lg font-bold text-white focus:outline-none focus:ring-2 focus:ring-ios-blue text-center">
+            </div>
+            <button onclick="saveManualWakeTime()" class="w-full py-3.5 bg-ios-blue hover:bg-blue-600 text-white font-bold text-sm rounded-2xl shadow-lg transition">
+              Update Wake Time
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL 3: END DRIVE TRIP CATEGORIZER -->
+      <div id="end-trip-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-end justify-center transition-all duration-300">
+        <div class="w-full max-w-md bg-neutral-900 border-t border-white/20 rounded-t-[34px] p-5 text-white shadow-ios-sheet">
+          <div class="w-12 h-1 bg-white/25 rounded-full mx-auto mb-4 cursor-pointer" onclick="closeEndTripModal()"></div>
+          
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-base font-bold">Complete Drive Trip</h2>
+            <button onclick="closeEndTripModal()" class="text-xs text-neutral-400 hover:text-white">Cancel</button>
+          </div>
+
+          <div class="space-y-3.5">
+            <div class="bg-black/30 p-3 rounded-2xl border border-white/10 flex justify-between text-xs">
+              <span>Trip Duration: <strong id="trip-modal-time">00:00</strong></span>
+              <span>Distance: <strong id="trip-modal-dist">0.0 km</strong></span>
+            </div>
+
+            <div>
+              <label class="text-[11px] font-semibold uppercase text-neutral-400 block mb-1">Tag Trip Purpose</label>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <button onclick="selectTripTag('Commute')" class="trip-tag-btn bg-white/10 p-2.5 rounded-xl border border-ios-blue text-white font-semibold">Commute to Office</button>
+                <button onclick="selectTripTag('Errand')" class="trip-tag-btn bg-white/5 p-2.5 rounded-xl border border-white/10 text-neutral-300">Groceries & Errands</button>
+                <button onclick="selectTripTag('Work')" class="trip-tag-btn bg-white/5 p-2.5 rounded-xl border border-white/10 text-neutral-300">Work Client Visit</button>
+                <button onclick="selectTripTag('Personal')" class="trip-tag-btn bg-white/5 p-2.5 rounded-xl border border-white/10 text-neutral-300">Personal / Leisure</button>
+              </div>
+            </div>
+
+            <button onclick="finalizeDriveTrip()" class="w-full py-3.5 bg-ios-blue hover:bg-blue-600 text-white font-bold text-sm rounded-2xl shadow-lg transition">
+              Save Drive to Timeline
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- IN-APP TOAST NOTIFICATION -->
+      <div id="ios-toast" class="fixed top-12 left-1/2 -translate-x-1/2 z-50 bg-neutral-850/95 ios-glass text-white text-xs font-semibold px-4 py-2.5 rounded-2xl shadow-ios-card border border-white/15 flex items-center gap-2 transform -translate-y-20 opacity-0 pointer-events-none transition-all duration-300">
+        <i id="toast-icon" class="fa-solid fa-check-circle text-ios-green"></i>
+        <span id="toast-message">Logged successfully</span>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================
+       AUDIO & HAPTIC SYSTEM (Web Audio API Synthesizers)
+       ========================================================= */
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioClass) audioCtx = new AudioClass();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTick(freq = 750, dur = 0.02) {
+      try {
+        initAudio();
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + dur);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function playSuccessChime() {
+      try {
+        initAudio();
+        if (!audioCtx) return;
+        [587.33, 739.99, 880.00].forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.07);
+          gain.gain.setValueAtTime(0.09, audioCtx.currentTime + idx * 0.07);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.07 + 0.3);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(audioCtx.currentTime + idx * 0.07);
+          osc.stop(audioCtx.currentTime + idx * 0.07 + 0.3);
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    /* =========================================================
+       STATE MANAGEMENT & LOCAL STORAGE
+       ========================================================= */
+    // Automated storage cleanup to purge previous mock sessions
+    if (!localStorage.getItem('ilife_zeroed_init_v3')) {
+      localStorage.removeItem('ilife_timeline');
+      localStorage.removeItem('ilife_workouts');
+      localStorage.removeItem('ilife_waketime');
+      localStorage.removeItem('ilife_bedtime');
+      localStorage.removeItem('ilife_issleeping');
+      localStorage.removeItem('ilife_last_active_date');
+      localStorage.setItem('ilife_zeroed_init_v3', 'true');
+    }
+
+    const TARGET_KCAL = 350;
+    const TARGET_MINS = 30;
+
+    const DEFAULT_TIMELINE = [];
+    const DEFAULT_WORKOUTS = [];
+
+    let state = {
+      wakeTime: localStorage.getItem('ilife_waketime') || '--:--',
+      bedTime: localStorage.getItem('ilife_bedtime') || null,
+      isSleeping: localStorage.getItem('ilife_issleeping') === 'true',
+      lastInteraction: Date.now(),
+      speedUnit: 'kmh', // or 'mph'
+      timeline: JSON.parse(localStorage.getItem('ilife_timeline')) || DEFAULT_TIMELINE,
+      workouts: JSON.parse(localStorage.getItem('ilife_workouts')) || DEFAULT_WORKOUTS,
+    };
+
+    function saveState() {
+      localStorage.setItem('ilife_timeline', JSON.stringify(state.timeline));
+      localStorage.setItem('ilife_workouts', JSON.stringify(state.workouts));
+      if (state.wakeTime && state.wakeTime !== '--:--') {
+        localStorage.setItem('ilife_waketime', state.wakeTime);
+      } else {
+        localStorage.removeItem('ilife_waketime');
+      }
+      if (state.bedTime) {
+        localStorage.setItem('ilife_bedtime', state.bedTime);
+      } else {
+        localStorage.removeItem('ilife_bedtime');
+      }
+      localStorage.setItem('ilife_issleeping', state.isSleeping);
+      renderAll();
+    }
+
+    function resetAllAppData() {
+      playTick(400, 0.04);
+      state.timeline = [];
+      state.workouts = [];
+      state.wakeTime = '--:--';
+      state.bedTime = null;
+      state.isSleeping = false;
+      localStorage.removeItem('ilife_timeline');
+      localStorage.removeItem('ilife_workouts');
+      localStorage.removeItem('ilife_waketime');
+      localStorage.removeItem('ilife_bedtime');
+      localStorage.removeItem('ilife_issleeping');
+      localStorage.removeItem('ilife_last_active_date');
+      saveState();
+      showToast('All data reset to zero', 'fa-solid fa-arrows-rotate');
+    }
+
+    /* =========================================================
+       IN-APP FIRST TOUCH & LAST TOUCH DETECTION
+       ========================================================= */
+    function recordTouchInteraction() {
+      state.lastInteraction = Date.now();
+      const lastTouchLabel = document.getElementById('last-touch-time');
+      if (lastTouchLabel) {
+        const d = new Date();
+        lastTouchLabel.innerText = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+    }
+    window.addEventListener('click', recordTouchInteraction, { passive: true });
+    window.addEventListener('touchstart', recordTouchInteraction, { passive: true });
+
+    function checkCircadianFirstTouch() {
+      const savedWake = localStorage.getItem('ilife_waketime');
+      const savedDate = localStorage.getItem('ilife_last_active_date');
+      const todayStr = new Date().toDateString();
+
+      // Only auto-detect wake if morning hours (5 AM to 11:30 AM) on a new day
+      const now = new Date();
+      const currentHour = now.getHours();
+
+      if (savedDate !== todayStr && currentHour >= 5 && currentHour <= 11) {
+        // First app open during morning hours
+        const detectedWakeTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        state.wakeTime = detectedWakeTime;
+        state.isSleeping = false;
+        localStorage.setItem('ilife_last_active_date', todayStr);
+        localStorage.setItem('ilife_waketime', detectedWakeTime);
+
+        // Add auto wake entry into timeline
+        state.timeline.unshift({
+          id: Date.now(),
+          type: 'wake',
+          time: detectedWakeTime,
+          title: 'Woke Up',
+          desc: 'First touch auto-detected on iPhone',
+          icon: 'fa-sun',
+          color: 'text-ios-yellow'
+        });
+        saveState();
+      } else if (savedWake) {
+        state.wakeTime = savedWake;
+      }
+    }
+
+    // Toggle Goodnight / Bedtime state
+    function toggleGoodnightState() {
+      playTick(600, 0.04);
+      state.isSleeping = !state.isSleeping;
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      if (state.isSleeping) {
+        state.bedTime = timeStr;
+        state.timeline.unshift({
+          id: Date.now(),
+          type: 'sleep',
+          time: timeStr,
+          title: 'Bedtime & Wind Down',
+          desc: 'Logged goodnight touch',
+          icon: 'fa-moon',
+          color: 'text-ios-indigo'
+        });
+        showToast('Goodnight! Sleep tracking engaged 🌙', 'fa-solid fa-moon');
+      } else {
+        showToast('Wake mode active ☀️', 'fa-solid fa-sun');
+      }
+      saveState();
+    }
+
+    /* =========================================================
+       RING METRICS & COMPUTATION (350 kcal / 30 mins)
+       ========================================================= */
+    function calculateTotals() {
+      let totalMins = 0;
+      let totalKcal = 0;
+
+      state.workouts.forEach(w => {
+        totalMins += parseInt(w.duration) || 0;
+        totalKcal += parseInt(w.calories) || 0;
+      });
+
+      return { totalMins, totalKcal };
+    }
+
+    function renderAll() {
+      const { totalMins, totalKcal } = calculateTotals();
+
+      // Readouts
+      document.getElementById('metric-calories-burned').innerText = totalKcal;
+      document.getElementById('metric-workout-mins').innerText = totalMins;
+      document.getElementById('workouts-total-kcal').innerText = totalKcal;
+      document.getElementById('workouts-duration-label').innerText = `${totalMins} min`;
+      document.getElementById('workouts-count-label').innerText = `${state.workouts.length} sessions`;
+      
+      const leftMins = Math.max(0, TARGET_MINS - totalMins);
+      document.getElementById('workouts-status-label').innerText = leftMins === 0 ? 'Goal Met! 🎉' : `${leftMins} min left`;
+
+      // Percentage bars
+      const calPercent = Math.min(100, Math.round((totalKcal / TARGET_KCAL) * 100));
+      const minPercent = Math.min(100, Math.round((totalMins / TARGET_MINS) * 100));
+      document.getElementById('bar-calories').style.width = `${calPercent}%`;
+      document.getElementById('bar-minutes').style.width = `${minPercent}%`;
+      document.getElementById('workouts-kcal-progress').style.width = `${calPercent}%`;
+
+      // Circular SVG Dashoffsets
+      // Calorie Ring: 251.32 circumference
+      const ringCalOffset = 251.32 - (Math.min(1, totalKcal / TARGET_KCAL) * 251.32);
+      document.getElementById('ring-calories').style.strokeDashoffset = ringCalOffset.toString();
+
+      // Minutes Ring: 188.49 circumference
+      const ringMinOffset = 188.49 - (Math.min(1, totalMins / TARGET_MINS) * 188.49);
+      document.getElementById('ring-minutes').style.strokeDashoffset = ringMinOffset.toString();
+
+      // Routine ring & checkpoints calculation
+      let routineCount = 0;
+      if (state.wakeTime && state.wakeTime !== '--:--') routineCount++;
+      if (totalKcal >= TARGET_KCAL) routineCount++;
+      if (totalMins >= TARGET_MINS) routineCount++;
+      if (state.isSleeping || state.bedTime) routineCount++;
+
+      document.getElementById('metric-routine-score').innerText = `${routineCount}/4 Done`;
+      const routinePercent = Math.round((routineCount / 4) * 100);
+      document.getElementById('bar-routine').style.width = `${routinePercent}%`;
+      const ringRoutineOffset = 125.66 - (Math.min(1, routineCount / 4) * 125.66);
+      document.getElementById('ring-routine').style.strokeDashoffset = ringRoutineOffset.toString();
+
+      document.getElementById('routine-move-tag').innerText = `${totalMins} / 30m`;
+      document.getElementById('routine-move-tag').className = totalMins >= TARGET_MINS ? 'text-xs font-bold text-ios-green' : (totalMins > 0 ? 'text-xs font-bold text-ios-yellow' : 'text-xs font-bold text-neutral-400');
+
+      document.getElementById('routine-kcal-tag').innerText = `${totalKcal} / 350 kcal`;
+      document.getElementById('routine-kcal-tag').className = totalKcal >= TARGET_KCAL ? 'text-xs font-bold text-ios-green' : (totalKcal > 0 ? 'text-xs font-bold text-ios-yellow' : 'text-xs font-bold text-neutral-400');
+
+      const wakeTag = document.getElementById('routine-wake-tag');
+      if (wakeTag) {
+        if (state.wakeTime && state.wakeTime !== '--:--') {
+          wakeTag.innerText = state.wakeTime;
+          wakeTag.className = 'text-xs font-bold text-ios-green';
+        } else {
+          wakeTag.innerText = 'Pending';
+          wakeTag.className = 'text-xs font-bold text-neutral-400';
+        }
+      }
+
+      // Wake / Bed Labels
+      document.getElementById('wake-time-display').innerText = state.wakeTime || '--:--';
+      const wakeStatusBadge = document.getElementById('wake-status-badge');
+      if (wakeStatusBadge) {
+        const hasWake = state.wakeTime && state.wakeTime !== '--:--';
+        wakeStatusBadge.innerText = hasWake ? 'Recorded' : 'Awaiting touch';
+        wakeStatusBadge.className = hasWake ? 'text-[10px] text-ios-green font-medium' : 'text-[10px] text-neutral-400 font-medium';
+      }
+
+      const goodnightBtnLabel = document.getElementById('goodnight-btn-label');
+      if (state.isSleeping) {
+        goodnightBtnLabel.innerText = 'Asleep';
+        document.getElementById('goodnight-btn').className = 'ios-btn text-[11px] font-semibold px-3 py-1 rounded-full bg-ios-indigo text-white border border-ios-indigo flex items-center gap-1';
+      } else {
+        goodnightBtnLabel.innerText = 'Goodnight';
+        document.getElementById('goodnight-btn').className = 'ios-btn text-[11px] font-semibold px-3 py-1 rounded-full bg-ios-indigo/30 text-indigo-300 border border-ios-indigo/40 flex items-center gap-1';
+      }
+
+      renderTimeline();
+      renderWorkoutsList();
+    }
+
+    function renderTimeline() {
+      const container = document.getElementById('timeline-feed');
+      container.innerHTML = '';
+      document.getElementById('timeline-count-badge').innerText = `${state.timeline.length} logged items`;
+
+      if (state.timeline.length === 0) {
+        container.innerHTML = `
+          <div class="py-6 px-4 text-center">
+            <div class="w-10 h-10 rounded-full bg-white/5 text-neutral-500 mx-auto flex items-center justify-center mb-2">
+              <i class="fa-regular fa-clock text-base"></i>
+            </div>
+            <p class="text-xs font-semibold text-neutral-400">No activities logged yet</p>
+            <p class="text-[11px] text-neutral-500 mt-0.5">Start a walk, drive, or tap + to log a workout.</p>
+          </div>
+        `;
+        return;
+      }
+
+      state.timeline.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-start gap-3 relative pl-6';
+        row.innerHTML = `
+          <div class="absolute left-1.5 top-1 -translate-x-1/2 w-4 h-4 rounded-full bg-neutral-900 border-2 border-white/30 flex items-center justify-center text-[8px] ${item.color}">
+            <i class="fa-solid ${item.icon}"></i>
+          </div>
+          <div class="flex-1 bg-white/5 rounded-2xl p-2.5 border border-white/5">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-white">${escapeHtml(item.title)}</span>
+              <span class="text-[10px] text-neutral-400 font-mono">${item.time}</span>
+            </div>
+            <p class="text-[11px] text-neutral-300 mt-0.5">${escapeHtml(item.desc)}</p>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function renderWorkoutsList() {
+      const container = document.getElementById('workouts-history-list');
+      container.innerHTML = '';
+
+      if (state.workouts.length === 0) {
+        container.innerHTML = '<p class="text-xs text-neutral-400 py-4 text-center">No workout sessions logged yet today.</p>';
+        return;
+      }
+
+      state.workouts.forEach((w) => {
+        const item = document.createElement('div');
+        item.className = 'py-3 flex items-center justify-between gap-3';
+        item.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-2xl bg-ios-pink/20 text-ios-pink flex items-center justify-center text-sm">
+              <i class="fa-solid fa-dumbbell"></i>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-white">${escapeHtml(w.sport)}</p>
+              <p class="text-[10px] text-neutral-400">${w.duration} mins • ${w.calories} kcal ${w.notes ? '• ' + escapeHtml(w.notes) : ''}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] text-neutral-400 font-mono">${w.time}</span>
+            <button onclick="deleteWorkout(${w.id})" class="text-neutral-500 hover:text-ios-red text-xs p-1">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function deleteWorkout(id) {
+      playTick(400, 0.04);
+      state.workouts = state.workouts.filter(w => w.id !== id);
+      saveState();
+      showToast('Workout removed', 'fa-solid fa-trash');
+    }
+
+    /* =========================================================
+       NAVIGATION CONTROLLER
+       ========================================================= */
+    function switchTab(tab) {
+      playTick(750, 0.02);
+      const tabs = ['today', 'workouts', 'walk', 'drive', 'sleep'];
+      tabs.forEach(t => {
+        const view = document.getElementById(`tab-${t}`);
+        const btn = document.getElementById(`nav-btn-${t}`);
+        if (t === tab) {
+          view.classList.remove('hidden');
+          view.classList.add('block');
+          btn.classList.remove('text-neutral-400');
+          btn.classList.add('text-ios-blue');
+        } else {
+          view.classList.remove('block');
+          view.classList.add('hidden');
+          btn.classList.remove('text-ios-blue');
+          btn.classList.add('text-neutral-400');
+        }
+      });
+
+      // Resize and re-center maps properly when tab changes
+      setTimeout(() => {
+        if (tab === 'walk' && walkMap) {
+          walkMap.invalidateSize();
+          if (walkCoords.length > 0) walkMap.panTo(walkCoords[walkCoords.length - 1]);
+        }
+        if (tab === 'drive' && driveMap) {
+          driveMap.invalidateSize();
+          if (driveCoords.length > 0) driveMap.panTo(driveCoords[driveCoords.length - 1]);
+        }
+      }, 150);
+    }
+
+    /* =========================================================
+       INTERACTIVE WALK GPS ENGINE WITH LEAFLET MAPPING
+       ========================================================= */
+    let walkMap = null;
+    let walkMarker = null;
+    let walkPolyline = null;
+    let walkCoords = [];
+    let isWalking = false;
+    let walkTimer = null;
+    let walkSeconds = 0;
+    let walkDistanceKm = 0;
+    let walkWatchId = null;
+    let walkSimInterval = null;
+
+    function initWalkMap() {
+      if (walkMap) return;
+      // Default coordinates: Toronto City Hall [43.6532, -79.3832]
+      const defaultCoord = [43.6532, -79.3832];
+      walkMap = L.map('walk-map', { zoomControl: false }).setView(defaultCoord, 16);
+
+      // Esri ArcGIS World Street Map (Keyless & no referer restrictions)
+      const walkTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.esri.com/">Esri</a>'
+      });
+      walkTiles.on('tileerror', function(err) {
+        console.warn('Walk tile load warning:', err);
+      });
+      walkTiles.addTo(walkMap);
+
+      const customGpsIcon = L.divIcon({
+        className: 'custom-gps-pin',
+        html: '<div class="gps-marker"></div>',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+      });
+
+      walkMarker = L.marker(defaultCoord, { icon: customGpsIcon }).addTo(walkMap);
+      walkPolyline = L.polyline([], { color: '#30D158', weight: 5, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }).addTo(walkMap);
+
+      // Attempt initial browser geolocation
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          const latlng = [pos.coords.latitude, pos.coords.longitude];
+          walkMap.setView(latlng, 17);
+          walkMarker.setLatLng(latlng);
+          document.getElementById('walk-location-label').innerText = 'GPS Signal Acquired';
+        }, () => {
+          document.getElementById('walk-location-label').innerText = 'Toronto (Standard GPS)';
+        });
+      }
+    }
+
+    function toggleWalkTracking() {
+      initAudio();
+      playTick(800, 0.04);
+      isWalking = !isWalking;
+
+      const toggleBtn = document.getElementById('walk-toggle-btn');
+      const toggleLabel = document.getElementById('walk-toggle-label');
+      const toggleIcon = document.getElementById('walk-toggle-icon');
+      const finishBtn = document.getElementById('walk-finish-btn');
+
+      if (isWalking) {
+        toggleLabel.innerText = 'Pause Walk';
+        toggleIcon.className = 'fa-solid fa-pause';
+        toggleBtn.className = 'ios-btn flex-1 py-3.5 bg-ios-orange hover:bg-orange-600 text-black font-bold text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2 transition';
+        finishBtn.disabled = false;
+        
+        // Start live timer
+        walkTimer = setInterval(() => {
+          walkSeconds++;
+          const mins = Math.floor(walkSeconds / 60);
+          const secs = walkSeconds % 60;
+          document.getElementById('walk-elapsed-time').innerText = `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+          
+          // Estimate calories: ~4.5 kcal per minute brisk walking
+          const cals = Math.round((walkSeconds / 60) * 4.5);
+          document.getElementById('walk-calories').innerHTML = `${cals} <span class="text-[10px] font-normal">kcal</span>`;
+          
+          // Pace calculation
+          if (walkDistanceKm > 0.05) {
+            const paceMinPerKm = (walkSeconds / 60) / walkDistanceKm;
+            const paceM = Math.floor(paceMinPerKm);
+            const paceS = Math.round((paceMinPerKm - paceM) * 60);
+            document.getElementById('walk-pace').innerText = `${paceM}'${paceS < 10 ? '0' : ''}${paceS}"`;
+          }
+        }, 1000);
+
+        // Hook real iPhone Geolocation
+        if (navigator.geolocation) {
+          walkWatchId = navigator.geolocation.watchPosition(handleWalkPosition, err => console.log(err), {
+            enableHighAccuracy: true,
+            maximumAge: 1000
+          });
+        }
+
+        updateDynamicIsland('Walking Track Active', `${walkDistanceKm.toFixed(2)} km`, 'bg-ios-green');
+      } else {
+        toggleLabel.innerText = 'Resume Walk';
+        toggleIcon.className = 'fa-solid fa-play';
+        toggleBtn.className = 'ios-btn flex-1 py-3.5 bg-ios-green hover:bg-green-600 text-black font-bold text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2 transition';
+        if (walkTimer) clearInterval(walkTimer);
+        if (walkWatchId) navigator.geolocation.clearWatch(walkWatchId);
+        updateDynamicIsland('Walk Paused', `${walkDistanceKm.toFixed(2)} km`, 'bg-ios-orange');
+      }
+    }
+
+    function handleWalkPosition(pos) {
+      const latlng = [pos.coords.latitude, pos.coords.longitude];
+      if (walkCoords.length > 0) {
+        const last = walkCoords[walkCoords.length - 1];
+        const distDelta = calculateDistance(last[0], last[1], latlng[0], latlng[1]);
+        walkDistanceKm += distDelta;
+        document.getElementById('walk-distance').innerHTML = `${walkDistanceKm.toFixed(2)} <span class="text-[10px] font-normal">km</span>`;
+      }
+      walkCoords.push(latlng);
+      walkPolyline.setLatLngs(walkCoords);
+      walkMarker.setLatLng(latlng);
+      walkMap.panTo(latlng);
+    }
+
+    function recenterWalkMap() {
+      playTick(600, 0.02);
+      if (walkCoords.length > 0) {
+        walkMap.panTo(walkCoords[walkCoords.length - 1]);
+      } else {
+        walkMap.setView([43.6532, -79.3832], 17);
+      }
+    }
+
+    function finishWalkSession() {
+      playSuccessChime();
+      if (walkTimer) clearInterval(walkTimer);
+      if (walkWatchId) navigator.geolocation.clearWatch(walkWatchId);
+      if (walkSimInterval) clearInterval(walkSimInterval);
+
+      const mins = Math.max(1, Math.round(walkSeconds / 60));
+      const calories = Math.max(15, Math.round(mins * 4.5));
+      const dist = walkDistanceKm.toFixed(2);
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // Automatically sync walk into Workouts and Rings!
+      const walkEntry = {
+        id: Date.now(),
+        sport: 'Walking',
+        duration: mins,
+        calories: calories,
+        time: nowStr,
+        notes: `GPS Tracked • ${dist} km`
+      };
+
+      state.workouts.unshift(walkEntry);
+      state.timeline.unshift({
+        id: Date.now(),
+        type: 'walk',
+        time: nowStr,
+        title: 'Walk Completed',
+        desc: `${dist} km in ${mins} mins • ${calories} kcal`,
+        icon: 'fa-person-walking',
+        color: 'text-ios-green'
+      });
+
+      saveState();
+
+      // Reset walk states
+      isWalking = false;
+      walkSeconds = 0;
+      walkDistanceKm = 0;
+      walkCoords = [];
+      if (walkPolyline) walkPolyline.setLatLngs([]);
+      document.getElementById('walk-elapsed-time').innerText = '00:00';
+      document.getElementById('walk-distance').innerHTML = '0.00 <span class="text-[10px] font-normal">km</span>';
+      document.getElementById('walk-calories').innerHTML = '0 <span class="text-[10px] font-normal">kcal</span>';
+      document.getElementById('walk-pace').innerText = '--\'--"';
+      document.getElementById('walk-toggle-label').innerText = 'Start Walk';
+      document.getElementById('walk-toggle-icon').className = 'fa-solid fa-play';
+      document.getElementById('walk-toggle-btn').className = 'ios-btn flex-1 py-3.5 bg-ios-green hover:bg-green-600 text-black font-bold text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2 transition';
+      document.getElementById('walk-finish-btn').disabled = true;
+
+      showToast(`Walk saved: ${dist} km added to daily rings! 🎯`, 'fa-solid fa-person-walking');
+      resetDynamicIsland();
+      switchTab('today');
+    }
+
+    // Desktop/Indoor Walk Simulator for interactive testing
+    function toggleSimulateWalk() {
+      const btn = document.getElementById('walk-sim-btn');
+      if (walkSimInterval) {
+        clearInterval(walkSimInterval);
+        walkSimInterval = null;
+        btn.innerText = 'Simulate GPS Movement';
+      } else {
+        if (!isWalking) toggleWalkTracking();
+        let curLat = 43.6532;
+        let curLng = -79.3832;
+        btn.innerText = 'Stop Simulation';
+
+        walkSimInterval = setInterval(() => {
+          curLat += (Math.random() - 0.48) * 0.0003;
+          curLng += (Math.random() - 0.48) * 0.0003;
+          handleWalkPosition({ coords: { latitude: curLat, longitude: curLng } });
+        }, 1500);
+      }
+    }
+
+    /* =========================================================
+       INTERACTIVE DRIVE HUD & SPEEDOMETER ENGINE
+       ========================================================= */
+    let driveMap = null;
+    let driveMarker = null;
+    let drivePolyline = null;
+    let driveCoords = [];
+    let isDriving = false;
+    let driveTimer = null;
+    let driveSeconds = 0;
+    let driveDistanceKm = 0;
+    let driveWatchId = null;
+    let driveSimInterval = null;
+    let selectedTripTag = 'Commute';
+
+    function initDriveMap() {
+      if (driveMap) return;
+      const defaultCoord = [43.6532, -79.3832];
+      driveMap = L.map('drive-map', { zoomControl: false }).setView(defaultCoord, 15);
+
+      // Esri ArcGIS World Street Map (Keyless & no referer restrictions)
+      const driveTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.esri.com/">Esri</a>'
+      });
+      driveTiles.on('tileerror', function(err) {
+        console.warn('Drive tile load warning:', err);
+      });
+      driveTiles.addTo(driveMap);
+
+      const carPin = L.divIcon({
+        className: 'custom-car-pin',
+        html: '<div class="w-4 h-4 rounded-full bg-ios-blue border-2 border-white shadow-lg"></div>',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+      });
+
+      driveMarker = L.marker(defaultCoord, { icon: carPin }).addTo(driveMap);
+      drivePolyline = L.polyline([], { color: '#0A84FF', weight: 5, opacity: 0.9 }).addTo(driveMap);
+
+      // Center on current GPS position if available
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          const latlng = [pos.coords.latitude, pos.coords.longitude];
+          if (driveMap) {
+            driveMap.setView(latlng, 15);
+            if (driveMarker) driveMarker.setLatLng(latlng);
+          }
+        }, () => {});
+      }
+    }
+
+    function toggleDriveTracking() {
+      initAudio();
+      playTick(800, 0.04);
+      isDriving = !isDriving;
+
+      const toggleBtn = document.getElementById('drive-toggle-btn');
+      const toggleLabel = document.getElementById('drive-toggle-label');
+      const toggleIcon = document.getElementById('drive-toggle-icon');
+      const finishBtn = document.getElementById('drive-finish-btn');
+
+      if (isDriving) {
+        toggleLabel.innerText = 'Pause Trip';
+        toggleIcon.className = 'fa-solid fa-pause';
+        toggleBtn.className = 'ios-btn flex-1 py-3.5 bg-ios-orange text-white font-bold text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2 transition';
+        finishBtn.disabled = false;
+
+        driveTimer = setInterval(() => {
+          driveSeconds++;
+          const mins = Math.floor(driveSeconds / 60);
+          const secs = driveSeconds % 60;
+          document.getElementById('drive-time-display').innerText = `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }, 1000);
+
+        if (navigator.geolocation) {
+          driveWatchId = navigator.geolocation.watchPosition(pos => {
+            let speed = pos.coords.speed || 0; // m/s
+            let speedKmh = Math.round(speed * 3.6);
+            if (state.speedUnit === 'mph') speedKmh = Math.round(speedKmh * 0.621371);
+            document.getElementById('drive-speed-display').innerText = speedKmh;
+
+            const latlng = [pos.coords.latitude, pos.coords.longitude];
+            if (driveCoords.length > 0) {
+              const last = driveCoords[driveCoords.length - 1];
+              driveDistanceKm += calculateDistance(last[0], last[1], latlng[0], latlng[1]);
+              document.getElementById('drive-distance-display').innerHTML = `${driveDistanceKm.toFixed(1)} <span class="text-xs font-normal text-neutral-400">km</span>`;
+            }
+            driveCoords.push(latlng);
+            drivePolyline.setLatLngs(driveCoords);
+            driveMarker.setLatLng(latlng);
+            driveMap.panTo(latlng);
+          }, err => console.log(err), { enableHighAccuracy: true });
+        }
+
+        updateDynamicIsland('Drive Mode', `${driveDistanceKm.toFixed(1)} km`, 'bg-ios-blue');
+      } else {
+        toggleLabel.innerText = 'Resume Trip';
+        toggleIcon.className = 'fa-solid fa-car';
+        toggleBtn.className = 'ios-btn flex-1 py-3.5 bg-ios-blue text-white font-bold text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2 transition';
+        if (driveTimer) clearInterval(driveTimer);
+        if (driveWatchId) navigator.geolocation.clearWatch(driveWatchId);
+        updateDynamicIsland('Drive Paused', `${driveDistanceKm.toFixed(1)} km`, 'bg-ios-orange');
+      }
+    }
+
+    function toggleSpeedUnit() {
+      playTick(600, 0.02);
+      state.speedUnit = state.speedUnit === 'kmh' ? 'mph' : 'kmh';
+      const btn = document.getElementById('speed-unit-btn');
+      const unitLabel = document.getElementById('drive-speed-unit');
+      btn.innerText = state.speedUnit.toUpperCase();
+      unitLabel.innerText = state.speedUnit === 'kmh' ? 'KM / H' : 'MPH';
+    }
+
+    function openEndTripModal() {
+      playTick(600, 0.02);
+      const mins = Math.floor(driveSeconds / 60);
+      const secs = driveSeconds % 60;
+      document.getElementById('trip-modal-time').innerText = `${mins}m ${secs}s`;
+      document.getElementById('trip-modal-dist').innerText = `${driveDistanceKm.toFixed(1)} km`;
+      document.getElementById('end-trip-modal').classList.remove('hidden');
+    }
+
+    function closeEndTripModal() {
+      document.getElementById('end-trip-modal').classList.add('hidden');
+    }
+
+    function selectTripTag(tag) {
+      playTick(600, 0.02);
+      selectedTripTag = tag;
+      document.querySelectorAll('.trip-tag-btn').forEach(btn => {
+        if (btn.innerText.includes(tag)) {
+          btn.className = 'trip-tag-btn bg-white/10 p-2.5 rounded-xl border border-ios-blue text-white font-semibold';
+        } else {
+          btn.className = 'trip-tag-btn bg-white/5 p-2.5 rounded-xl border border-white/10 text-neutral-300';
+        }
+      });
+    }
+
+    function finalizeDriveTrip() {
+      playSuccessChime();
+      if (driveTimer) clearInterval(driveTimer);
+      if (driveWatchId) navigator.geolocation.clearWatch(driveWatchId);
+      if (driveSimInterval) clearInterval(driveSimInterval);
+
+      const mins = Math.max(1, Math.round(driveSeconds / 60));
+      const dist = driveDistanceKm.toFixed(1);
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      state.timeline.unshift({
+        id: Date.now(),
+        type: 'drive',
+        time: nowStr,
+        title: `Drive: ${selectedTripTag}`,
+        desc: `${dist} km in ${mins} mins commute`,
+        icon: 'fa-car',
+        color: 'text-ios-blue'
+      });
+
+      saveState();
+      closeEndTripModal();
+
+      // Reset
+      isDriving = false;
+      driveSeconds = 0;
+      driveDistanceKm = 0;
+      driveCoords = [];
+      if (drivePolyline) drivePolyline.setLatLngs([]);
+      document.getElementById('drive-speed-display').innerText = '0';
+      document.getElementById('drive-time-display').innerText = '00:00';
+      document.getElementById('drive-distance-display').innerHTML = '0.0 <span class="text-xs font-normal text-neutral-400">km</span>';
+      document.getElementById('drive-toggle-label').innerText = 'Start Trip';
+      document.getElementById('drive-toggle-btn').className = 'ios-btn flex-1 py-3.5 bg-ios-blue text-white font-bold text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2 transition';
+      document.getElementById('drive-finish-btn').disabled = true;
+
+      showToast(`Drive trip logged: ${dist} km! 🚗`, 'fa-solid fa-car');
+      resetDynamicIsland();
+      switchTab('today');
+    }
+
+    // Drive Simulator for desktop demonstration
+    function toggleSimulateDrive() {
+      const btn = document.getElementById('drive-sim-btn');
+      if (driveSimInterval) {
+        clearInterval(driveSimInterval);
+        driveSimInterval = null;
+        document.getElementById('drive-speed-display').innerText = '0';
+        btn.innerText = 'Simulate Driving Speed';
+      } else {
+        if (!isDriving) toggleDriveTracking();
+        btn.innerText = 'Stop Vehicle Sim';
+        let speed = 45;
+
+        driveSimInterval = setInterval(() => {
+          speed = Math.min(85, Math.max(25, speed + Math.round((Math.random() - 0.48) * 8)));
+          document.getElementById('drive-speed-display').innerText = speed;
+          driveDistanceKm += 0.03;
+          document.getElementById('drive-distance-display').innerHTML = `${driveDistanceKm.toFixed(1)} <span class="text-xs font-normal text-neutral-400">km</span>`;
+        }, 1200);
+      }
+    }
+
+    /* =========================================================
+       STREAMING_CHUNK:Workout Logging, Pre-sets, and Calorie Estimators
+       ========================================================= */
+    function openLogModal() {
+      playTick(600, 0.02);
+      document.getElementById('workout-modal').classList.remove('hidden');
+    }
+
+    function closeLogModal() {
+      document.getElementById('workout-modal').classList.add('hidden');
+    }
+
+    function autoFillCalorieEstimate() {
+      const sport = document.getElementById('input-sport-type').value;
+      const duration = parseInt(document.getElementById('input-duration').value) || 30;
+      
+      const burnRates = {
+        'Strength': 6.0,
+        'HIIT': 9.5,
+        'Skating': 7.5,
+        'Swimming': 8.5,
+        'Running': 10.0,
+        'Walking': 4.5,
+        'Cycling': 8.0,
+        'Yoga': 3.5
+      };
+
+      const est = Math.round((burnRates[sport] || 6.0) * duration);
+      document.getElementById('input-calories').value = est;
+    }
+
+    function presetSportLog(sport, duration, calories, icon, color) {
+      playTick(700, 0.03);
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const newWorkout = {
+        id: Date.now(),
+        sport: sport,
+        duration: duration,
+        calories: calories,
+        time: nowStr,
+        notes: 'Quick preset logged'
+      };
+
+      state.workouts.unshift(newWorkout);
+      state.timeline.unshift({
+        id: Date.now(),
+        type: 'workout',
+        time: nowStr,
+        title: `${sport} Session`,
+        desc: `${duration} mins • ${calories} kcal burned`,
+        icon: icon,
+        color: `text-${color}`
+      });
+
+      saveState();
+      playSuccessChime();
+      showToast(`${sport} added: +${calories} kcal! 🔥`, `fa-solid ${icon}`);
+      switchTab('today');
+    }
+
+    function handleManualWorkoutSubmit(e) {
+      e.preventDefault();
+      const sport = document.getElementById('input-sport-type').value;
+      const duration = parseInt(document.getElementById('input-duration').value) || 30;
+      const calories = parseInt(document.getElementById('input-calories').value) || 180;
+      const notes = document.getElementById('input-notes').value.trim();
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      state.workouts.unshift({
+        id: Date.now(),
+        sport: sport,
+        duration: duration,
+        calories: calories,
+        time: nowStr,
+        notes: notes
+      });
+
+      state.timeline.unshift({
+        id: Date.now(),
+        type: 'workout',
+        time: nowStr,
+        title: `${sport} Workout`,
+        desc: `${duration} mins • ${calories} kcal ${notes ? '• ' + notes : ''}`,
+        icon: 'fa-dumbbell',
+        color: 'text-ios-pink'
+      });
+
+      saveState();
+      playSuccessChime();
+      closeLogModal();
+      showToast(`Logged ${duration}m ${sport} session!`, 'fa-solid fa-check');
+      switchTab('today');
+    }
+
+    function openWakeEditModal() {
+      playTick(600, 0.02);
+      document.getElementById('wake-modal').classList.remove('hidden');
+    }
+
+    function closeWakeEditModal() {
+      document.getElementById('wake-modal').classList.add('hidden');
+    }
+
+    function saveManualWakeTime() {
+      const val = document.getElementById('input-wake-time').value;
+      if (val) {
+        state.wakeTime = formatTimeToAmPm(val);
+        saveState();
+        playSuccessChime();
+        closeWakeEditModal();
+        showToast('Wake time updated!', 'fa-solid fa-sun');
+      }
+    }
+
+    /* =========================================================
+       DYNAMIC ISLAND & TOAST HELPERS
+       ========================================================= */
+    function updateDynamicIsland(title, badgeText, dotColor = 'bg-ios-green') {
+      const islandTitle = document.getElementById('island-title');
+      const badge = document.getElementById('island-status-badge');
+      const dot = document.getElementById('island-dot');
+      islandTitle.innerText = title;
+      badge.innerText = badgeText;
+      dot.className = `w-2 h-2 rounded-full ${dotColor} animate-pulse`;
+    }
+
+    function resetDynamicIsland() {
+      updateDynamicIsland('Daily Routine', 'Active', 'bg-ios-green');
+    }
+
+    function handleIslandClick() {
+      playTick(600, 0.02);
+      if (isWalking) switchTab('walk');
+      else if (isDriving) switchTab('drive');
+      else switchTab('today');
+    }
+
+    function showToast(message, iconClass = 'fa-solid fa-check') {
+      const toast = document.getElementById('ios-toast');
+      const text = document.getElementById('toast-message');
+      const icon = document.getElementById('toast-icon');
+      text.innerText = message;
+      icon.className = iconClass;
+      toast.classList.remove('-translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.add('-translate-y-20', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 2500);
+    }
+
+    // Mathematical Haversine Distance (km)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Earth radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function formatTimeToAmPm(time24) {
+      const [h, m] = time24.split(':');
+      let hours = parseInt(h);
+      const suffix = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      return `${hours}:${m} ${suffix}`;
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text.replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      })[m]);
+    }
+
+    // Toggle Desktop frame vs full screen
+    let isFramed = true;
+    function togglePhoneFrame() {
+      const container = document.getElementById('phone-container');
+      const label = document.getElementById('frame-toggle-label');
+      isFramed = !isFramed;
+      if (isFramed) {
+        container.className = "relative w-full max-w-full md:max-w-[420px] h-[100dvh] md:h-[880px] bg-black md:rounded-[56px] md:shadow-[0_30px_90px_rgba(0,0,0,0.9)] md:border-[12px] md:border-neutral-800 overflow-hidden flex flex-col justify-between transition-all duration-300";
+        label.innerText = "iPhone Frame";
+      } else {
+        container.className = "relative w-full h-[100dvh] bg-black overflow-hidden flex flex-col justify-between transition-all duration-300";
+        label.innerText = "Full Screen";
+      }
+    }
+
+    // Real-time clock tick
+    function updateLiveClock() {
+      const now = new Date();
+      let hours = now.getHours();
+      let minutes = now.getMinutes();
+      const displayHours = hours % 12 || 12;
+      const displayMinutes = minutes < 10 ? '0' + minutes : minutes;
+      const timeStr = `${displayHours}:${displayMinutes}`;
+      
+      const clockEl = document.getElementById('status-clock');
+      if (clockEl) clockEl.innerText = timeStr;
+
+      const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      const subtitle = document.getElementById('today-formatted-date');
+      if (subtitle) subtitle.innerText = dateStr;
+    }
+    setInterval(updateLiveClock, 1000);
+
+    /* =========================================================
+       INITIALIZATION
+       ========================================================= */
+    window.onload = function () {
+      updateLiveClock();
+      checkCircadianFirstTouch();
+      initWalkMap();
+      initDriveMap();
+      renderAll();
+    };
+  </script>
+</body>
+</html>
