@@ -100,9 +100,9 @@
       padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px);
     }
 
-    /* Leaflet Dark Customization */
+    /* Leaflet Dark Customization (Esri World Street Map Tiles) */
     .leaflet-tile {
-      filter: brightness(0.68) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+      filter: brightness(0.65) invert(1) contrast(2.2) hue-rotate(200deg) saturate(0.25) brightness(0.75);
     }
     .leaflet-control-zoom {
       display: none;
@@ -1162,15 +1162,21 @@
         }
       });
 
-      // Resize maps properly if switched
+      // Resize and re-center maps properly when tab changes
       setTimeout(() => {
-        if (tab === 'walk' && walkMap) walkMap.invalidateSize();
-        if (tab === 'drive' && driveMap) driveMap.invalidateSize();
+        if (tab === 'walk' && walkMap) {
+          walkMap.invalidateSize();
+          if (walkCoords.length > 0) walkMap.panTo(walkCoords[walkCoords.length - 1]);
+        }
+        if (tab === 'drive' && driveMap) {
+          driveMap.invalidateSize();
+          if (driveCoords.length > 0) driveMap.panTo(driveCoords[driveCoords.length - 1]);
+        }
       }, 150);
     }
 
     /* =========================================================
-       STREAMING_CHUNK:Interactive Walk GPS Engine with Leaflet Mapping
+       INTERACTIVE WALK GPS ENGINE WITH LEAFLET MAPPING
        ========================================================= */
     let walkMap = null;
     let walkMarker = null;
@@ -1189,9 +1195,10 @@
       const defaultCoord = [43.6532, -79.3832];
       walkMap = L.map('walk-map', { zoomControl: false }).setView(defaultCoord, 16);
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      // Esri ArcGIS World Street Map: 100% free, no API key, and no "Access blocked" referrer restrictions
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 19,
-        attribution: '&copy; CartoDB & OpenStreetMap'
+        attribution: 'Tiles &copy; Esri &mdash; Sources: Esri, DeLorme, USGS, NPS'
       }).addTo(walkMap);
 
       const customGpsIcon = L.divIcon({
@@ -1371,7 +1378,7 @@
     }
 
     /* =========================================================
-       STREAMING_CHUNK:Interactive Drive HUD & Speedometer Engine
+       INTERACTIVE DRIVE HUD & SPEEDOMETER ENGINE
        ========================================================= */
     let driveMap = null;
     let driveMarker = null;
@@ -1390,9 +1397,10 @@
       const defaultCoord = [43.6532, -79.3832];
       driveMap = L.map('drive-map', { zoomControl: false }).setView(defaultCoord, 15);
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      // Esri ArcGIS World Street Map: 100% free, no API key, and no "Access blocked" referrer restrictions
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 19,
-        attribution: '&copy; CartoDB'
+        attribution: 'Tiles &copy; Esri &mdash; Sources: Esri, DeLorme, USGS, NPS'
       }).addTo(driveMap);
 
       const carPin = L.divIcon({
@@ -1404,6 +1412,17 @@
 
       driveMarker = L.marker(defaultCoord, { icon: carPin }).addTo(driveMap);
       drivePolyline = L.polyline([], { color: '#0A84FF', weight: 5, opacity: 0.9 }).addTo(driveMap);
+
+      // Center on current GPS position if available
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          const latlng = [pos.coords.latitude, pos.coords.longitude];
+          if (driveMap) {
+            driveMap.setView(latlng, 15);
+            if (driveMarker) driveMarker.setLatLng(latlng);
+          }
+        }, () => {});
+      }
     }
 
     function toggleDriveTracking() {
