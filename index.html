@@ -8,6 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="iLife">
   <meta name="theme-color" content="#000000">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -100,7 +101,7 @@
       padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px);
     }
 
-    /* Leaflet Dark Customization (Esri World Street Map Tiles) */
+    /* Leaflet Dark Customization (OpenStreetMap Keyless Tiles) */
     .leaflet-tile {
       filter: brightness(0.65) invert(1) contrast(2.2) hue-rotate(200deg) saturate(0.25) brightness(0.75);
     }
@@ -223,8 +224,8 @@
                   <i class="fa-solid fa-sun text-ios-yellow"></i>
                 </div>
                 <div class="mt-2">
-                  <p id="wake-time-display" class="text-xl font-bold text-white tracking-tight">6:45 AM</p>
-                  <p id="wake-status-badge" class="text-[10px] text-ios-green font-medium">Auto-detected</p>
+                  <p id="wake-time-display" class="text-xl font-bold text-white tracking-tight">--:--</p>
+                  <p id="wake-status-badge" class="text-[10px] text-neutral-400 font-medium">Awaiting touch</p>
                 </div>
               </div>
 
@@ -235,8 +236,8 @@
                   <i class="fa-solid fa-bed text-ios-indigo"></i>
                 </div>
                 <div class="mt-2">
-                  <p id="sleep-duration-display" class="text-xl font-bold text-white tracking-tight">7h 35m</p>
-                  <p id="sleep-quality-badge" class="text-[10px] text-ios-mint font-medium">92% Target Met</p>
+                  <p id="sleep-duration-display" class="text-xl font-bold text-white tracking-tight">--</p>
+                  <p id="sleep-quality-badge" class="text-[10px] text-neutral-400 font-medium">Awaiting bedtime</p>
                 </div>
               </div>
             </div>
@@ -265,17 +266,17 @@
                 <!-- Calorie Ring (Target: 350 kcal) - Pink -->
                 <!-- Circ = 2 * PI * 40 = 251.32 -->
                 <circle id="ring-calories" cx="50" cy="50" r="40" stroke="#FF375F" stroke-width="7" fill="none"
-                        stroke-dasharray="251.32" stroke-dashoffset="100" stroke-linecap="round" class="transition-all duration-700"></circle>
+                        stroke-dasharray="251.32" stroke-dashoffset="251.32" stroke-linecap="round" class="transition-all duration-700"></circle>
 
                 <!-- Workout/Walk Minutes Ring (Target: 30 mins) - Green -->
                 <!-- Circ = 2 * PI * 30 = 188.49 -->
                 <circle id="ring-minutes" cx="50" cy="50" r="30" stroke="#30D158" stroke-width="7" fill="none"
-                        stroke-dasharray="188.49" stroke-dashoffset="60" stroke-linecap="round" class="transition-all duration-700"></circle>
+                        stroke-dasharray="188.49" stroke-dashoffset="188.49" stroke-linecap="round" class="transition-all duration-700"></circle>
 
                 <!-- Movement / Routine Checkpoint Ring - Cyan -->
                 <!-- Circ = 2 * PI * 20 = 125.66 -->
                 <circle id="ring-routine" cx="50" cy="50" r="20" stroke="#40C8E0" stroke-width="7" fill="none"
-                        stroke-dasharray="125.66" stroke-dashoffset="40" stroke-linecap="round" class="transition-all duration-700"></circle>
+                        stroke-dasharray="125.66" stroke-dashoffset="125.66" stroke-linecap="round" class="transition-all duration-700"></circle>
               </svg>
               <!-- Center Icon -->
               <div class="absolute text-center flex flex-col items-center">
@@ -290,10 +291,10 @@
                   <span class="text-neutral-300 font-semibold flex items-center gap-1.5">
                     <span class="w-2.5 h-2.5 rounded-full bg-ios-pink"></span> Move Burn
                   </span>
-                  <span class="font-bold text-white"><span id="metric-calories-burned">210</span> / 350 <span class="text-[10px] text-neutral-400">kcal</span></span>
+                  <span class="font-bold text-white"><span id="metric-calories-burned">0</span> / 350 <span class="text-[10px] text-neutral-400">kcal</span></span>
                 </div>
                 <div class="w-full bg-white/10 h-1.5 rounded-full mt-1 overflow-hidden">
-                  <div id="bar-calories" class="bg-ios-pink h-full rounded-full w-[60%] transition-all duration-500"></div>
+                  <div id="bar-calories" class="bg-ios-pink h-full rounded-full w-0 transition-all duration-500"></div>
                 </div>
               </div>
 
@@ -302,10 +303,10 @@
                   <span class="text-neutral-300 font-semibold flex items-center gap-1.5">
                     <span class="w-2.5 h-2.5 rounded-full bg-ios-green"></span> Activity Time
                   </span>
-                  <span class="font-bold text-white"><span id="metric-workout-mins">22</span> / 30 <span class="text-[10px] text-neutral-400">min</span></span>
+                  <span class="font-bold text-white"><span id="metric-workout-mins">0</span> / 30 <span class="text-[10px] text-neutral-400">min</span></span>
                 </div>
                 <div class="w-full bg-white/10 h-1.5 rounded-full mt-1 overflow-hidden">
-                  <div id="bar-minutes" class="bg-ios-green h-full rounded-full w-[73%] transition-all duration-500"></div>
+                  <div id="bar-minutes" class="bg-ios-green h-full rounded-full w-0 transition-all duration-500"></div>
                 </div>
               </div>
 
@@ -314,10 +315,10 @@
                   <span class="text-neutral-300 font-semibold flex items-center gap-1.5">
                     <span class="w-2.5 h-2.5 rounded-full bg-ios-teal"></span> Routine
                   </span>
-                  <span id="metric-routine-score" class="font-bold text-ios-teal">4/5 Done</span>
+                  <span id="metric-routine-score" class="font-bold text-ios-teal">0/4 Done</span>
                 </div>
                 <div class="w-full bg-white/10 h-1.5 rounded-full mt-1 overflow-hidden">
-                  <div id="bar-routine" class="bg-ios-teal h-full rounded-full w-[80%] transition-all duration-500"></div>
+                  <div id="bar-routine" class="bg-ios-teal h-full rounded-full w-0 transition-all duration-500"></div>
                 </div>
               </div>
             </div>
@@ -385,23 +386,23 @@
           <div class="bg-gradient-to-br from-pink-900/40 via-neutral-900/70 to-neutral-900/90 border border-ios-pink/30 rounded-3xl p-4 shadow-ios-card">
             <div class="flex justify-between items-center mb-2">
               <span class="text-xs font-bold uppercase tracking-wider text-pink-300">Daily Exercise Progress</span>
-              <span class="text-xs font-bold text-ios-pink"><span id="workouts-total-kcal">210</span> / 350 kcal</span>
+              <span class="text-xs font-bold text-ios-pink"><span id="workouts-total-kcal">0</span> / 350 kcal</span>
             </div>
             <div class="w-full bg-white/10 h-2 rounded-full overflow-hidden mb-3">
-              <div id="workouts-kcal-progress" class="bg-ios-pink h-full rounded-full w-[60%]"></div>
+              <div id="workouts-kcal-progress" class="bg-ios-pink h-full rounded-full w-0"></div>
             </div>
             <div class="grid grid-cols-3 gap-2 text-center text-xs">
               <div class="bg-black/30 rounded-2xl p-2">
                 <p class="text-neutral-400 text-[10px]">Active Duration</p>
-                <p id="workouts-duration-label" class="font-bold text-white mt-0.5">22 min</p>
+                <p id="workouts-duration-label" class="font-bold text-white mt-0.5">0 min</p>
               </div>
               <div class="bg-black/30 rounded-2xl p-2">
                 <p class="text-neutral-400 text-[10px]">Activities</p>
-                <p id="workouts-count-label" class="font-bold text-white mt-0.5">2 sessions</p>
+                <p id="workouts-count-label" class="font-bold text-white mt-0.5">0 sessions</p>
               </div>
               <div class="bg-black/30 rounded-2xl p-2">
                 <p class="text-neutral-400 text-[10px]">Goal Status</p>
-                <p id="workouts-status-label" class="font-bold text-ios-yellow mt-0.5">8 min left</p>
+                <p id="workouts-status-label" class="font-bold text-ios-yellow mt-0.5">30 min left</p>
               </div>
             </div>
           </div>
@@ -634,7 +635,12 @@
 
           <!-- Routine Consistency Toggles -->
           <div class="bg-ios-card ios-glass border border-white/10 rounded-3xl p-4 shadow-ios-card">
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-3">Today's Routine Checkpoints</h3>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400">Today's Routine Checkpoints</h3>
+              <button onclick="resetAllAppData()" class="text-[10px] text-ios-red/80 hover:text-ios-red flex items-center gap-1 font-medium transition">
+                <i class="fa-solid fa-arrows-rotate"></i> Reset All Data
+              </button>
+            </div>
             
             <div class="space-y-2.5">
               <div class="flex items-center justify-between p-2.5 rounded-2xl bg-white/5">
@@ -647,7 +653,7 @@
                     <p class="text-[10px] text-neutral-400">Target before 7:15 AM</p>
                   </div>
                 </div>
-                <span class="text-xs font-bold text-ios-green">Completed</span>
+                <span id="routine-wake-tag" class="text-xs font-bold text-neutral-400">Pending</span>
               </div>
 
               <div class="flex items-center justify-between p-2.5 rounded-2xl bg-white/5">
@@ -660,7 +666,7 @@
                     <p class="text-[10px] text-neutral-400">Workout & Walk combined</p>
                   </div>
                 </div>
-                <span id="routine-move-tag" class="text-xs font-bold text-ios-yellow">22 / 30m</span>
+                <span id="routine-move-tag" class="text-xs font-bold text-neutral-400">0 / 30m</span>
               </div>
 
               <div class="flex items-center justify-between p-2.5 rounded-2xl bg-white/5">
@@ -673,7 +679,7 @@
                     <p class="text-[10px] text-neutral-400">Calorie burn goal</p>
                   </div>
                 </div>
-                <span id="routine-kcal-tag" class="text-xs font-bold text-ios-yellow">210 / 350 kcal</span>
+                <span id="routine-kcal-tag" class="text-xs font-bold text-neutral-400">0 / 350 kcal</span>
               </div>
 
               <div class="flex items-center justify-between p-2.5 rounded-2xl bg-white/5">
@@ -910,23 +916,27 @@
     /* =========================================================
        STATE MANAGEMENT & LOCAL STORAGE
        ========================================================= */
+    // Automated storage cleanup to purge previous mock sessions
+    if (!localStorage.getItem('ilife_zeroed_init_v3')) {
+      localStorage.removeItem('ilife_timeline');
+      localStorage.removeItem('ilife_workouts');
+      localStorage.removeItem('ilife_waketime');
+      localStorage.removeItem('ilife_bedtime');
+      localStorage.removeItem('ilife_issleeping');
+      localStorage.removeItem('ilife_last_active_date');
+      localStorage.setItem('ilife_zeroed_init_v3', 'true');
+    }
+
     const TARGET_KCAL = 350;
     const TARGET_MINS = 30;
 
-    const DEFAULT_TIMELINE = [
-      { id: 1, type: 'wake', time: '6:45 AM', title: 'Woke Up', desc: 'Auto-detected from morning phone unlock', icon: 'fa-sun', color: 'text-ios-yellow' },
-      { id: 2, type: 'drive', time: '8:15 AM', title: 'Morning Commute', desc: '22 mins • 14.8 km to Downtown', icon: 'fa-car', color: 'text-ios-blue' },
-      { id: 3, type: 'workout', time: '12:30 PM', title: 'Strength Training', desc: '22 mins • 210 kcal burned', icon: 'fa-dumbbell', color: 'text-ios-pink' }
-    ];
-
-    const DEFAULT_WORKOUTS = [
-      { id: 101, sport: 'Strength', duration: 22, calories: 210, time: '12:30 PM', notes: 'Upper body hypertrophy' }
-    ];
+    const DEFAULT_TIMELINE = [];
+    const DEFAULT_WORKOUTS = [];
 
     let state = {
-      wakeTime: '6:45 AM',
-      bedTime: '11:10 PM',
-      isSleeping: false,
+      wakeTime: localStorage.getItem('ilife_waketime') || '--:--',
+      bedTime: localStorage.getItem('ilife_bedtime') || null,
+      isSleeping: localStorage.getItem('ilife_issleeping') === 'true',
       lastInteraction: Date.now(),
       speedUnit: 'kmh', // or 'mph'
       timeline: JSON.parse(localStorage.getItem('ilife_timeline')) || DEFAULT_TIMELINE,
@@ -936,10 +946,35 @@
     function saveState() {
       localStorage.setItem('ilife_timeline', JSON.stringify(state.timeline));
       localStorage.setItem('ilife_workouts', JSON.stringify(state.workouts));
-      localStorage.setItem('ilife_waketime', state.wakeTime);
-      localStorage.setItem('ilife_bedtime', state.bedTime);
+      if (state.wakeTime && state.wakeTime !== '--:--') {
+        localStorage.setItem('ilife_waketime', state.wakeTime);
+      } else {
+        localStorage.removeItem('ilife_waketime');
+      }
+      if (state.bedTime) {
+        localStorage.setItem('ilife_bedtime', state.bedTime);
+      } else {
+        localStorage.removeItem('ilife_bedtime');
+      }
       localStorage.setItem('ilife_issleeping', state.isSleeping);
       renderAll();
+    }
+
+    function resetAllAppData() {
+      playTick(400, 0.04);
+      state.timeline = [];
+      state.workouts = [];
+      state.wakeTime = '--:--';
+      state.bedTime = null;
+      state.isSleeping = false;
+      localStorage.removeItem('ilife_timeline');
+      localStorage.removeItem('ilife_workouts');
+      localStorage.removeItem('ilife_waketime');
+      localStorage.removeItem('ilife_bedtime');
+      localStorage.removeItem('ilife_issleeping');
+      localStorage.removeItem('ilife_last_active_date');
+      saveState();
+      showToast('All data reset to zero', 'fa-solid fa-arrows-rotate');
     }
 
     /* =========================================================
@@ -961,9 +996,12 @@
       const savedDate = localStorage.getItem('ilife_last_active_date');
       const todayStr = new Date().toDateString();
 
-      if (savedDate !== todayStr) {
-        // First app open of the day!
-        const now = new Date();
+      // Only auto-detect wake if morning hours (5 AM to 11:30 AM) on a new day
+      const now = new Date();
+      const currentHour = now.getHours();
+
+      if (savedDate !== todayStr && currentHour >= 5 && currentHour <= 11) {
+        // First app open during morning hours
         const detectedWakeTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         state.wakeTime = detectedWakeTime;
         state.isSleeping = false;
@@ -1055,14 +1093,45 @@
       const ringMinOffset = 188.49 - (Math.min(1, totalMins / TARGET_MINS) * 188.49);
       document.getElementById('ring-minutes').style.strokeDashoffset = ringMinOffset.toString();
 
-      // Routine ring
-      const routineScore = (totalKcal >= TARGET_KCAL ? 1 : 0) + (totalMins >= TARGET_MINS ? 1 : 0) + 2; // base wake & bedtime
-      document.getElementById('metric-routine-score').innerText = `${routineScore}/4 Done`;
+      // Routine ring & checkpoints calculation
+      let routineCount = 0;
+      if (state.wakeTime && state.wakeTime !== '--:--') routineCount++;
+      if (totalKcal >= TARGET_KCAL) routineCount++;
+      if (totalMins >= TARGET_MINS) routineCount++;
+      if (state.isSleeping || state.bedTime) routineCount++;
+
+      document.getElementById('metric-routine-score').innerText = `${routineCount}/4 Done`;
+      const routinePercent = Math.round((routineCount / 4) * 100);
+      document.getElementById('bar-routine').style.width = `${routinePercent}%`;
+      const ringRoutineOffset = 125.66 - (Math.min(1, routineCount / 4) * 125.66);
+      document.getElementById('ring-routine').style.strokeDashoffset = ringRoutineOffset.toString();
+
       document.getElementById('routine-move-tag').innerText = `${totalMins} / 30m`;
+      document.getElementById('routine-move-tag').className = totalMins >= TARGET_MINS ? 'text-xs font-bold text-ios-green' : (totalMins > 0 ? 'text-xs font-bold text-ios-yellow' : 'text-xs font-bold text-neutral-400');
+
       document.getElementById('routine-kcal-tag').innerText = `${totalKcal} / 350 kcal`;
+      document.getElementById('routine-kcal-tag').className = totalKcal >= TARGET_KCAL ? 'text-xs font-bold text-ios-green' : (totalKcal > 0 ? 'text-xs font-bold text-ios-yellow' : 'text-xs font-bold text-neutral-400');
+
+      const wakeTag = document.getElementById('routine-wake-tag');
+      if (wakeTag) {
+        if (state.wakeTime && state.wakeTime !== '--:--') {
+          wakeTag.innerText = state.wakeTime;
+          wakeTag.className = 'text-xs font-bold text-ios-green';
+        } else {
+          wakeTag.innerText = 'Pending';
+          wakeTag.className = 'text-xs font-bold text-neutral-400';
+        }
+      }
 
       // Wake / Bed Labels
-      document.getElementById('wake-time-display').innerText = state.wakeTime;
+      document.getElementById('wake-time-display').innerText = state.wakeTime || '--:--';
+      const wakeStatusBadge = document.getElementById('wake-status-badge');
+      if (wakeStatusBadge) {
+        const hasWake = state.wakeTime && state.wakeTime !== '--:--';
+        wakeStatusBadge.innerText = hasWake ? 'Recorded' : 'Awaiting touch';
+        wakeStatusBadge.className = hasWake ? 'text-[10px] text-ios-green font-medium' : 'text-[10px] text-neutral-400 font-medium';
+      }
+
       const goodnightBtnLabel = document.getElementById('goodnight-btn-label');
       if (state.isSleeping) {
         goodnightBtnLabel.innerText = 'Asleep';
@@ -1080,6 +1149,19 @@
       const container = document.getElementById('timeline-feed');
       container.innerHTML = '';
       document.getElementById('timeline-count-badge').innerText = `${state.timeline.length} logged items`;
+
+      if (state.timeline.length === 0) {
+        container.innerHTML = `
+          <div class="py-6 px-4 text-center">
+            <div class="w-10 h-10 rounded-full bg-white/5 text-neutral-500 mx-auto flex items-center justify-center mb-2">
+              <i class="fa-regular fa-clock text-base"></i>
+            </div>
+            <p class="text-xs font-semibold text-neutral-400">No activities logged yet</p>
+            <p class="text-[11px] text-neutral-500 mt-0.5">Start a walk, drive, or tap + to log a workout.</p>
+          </div>
+        `;
+        return;
+      }
 
       state.timeline.forEach((item, index) => {
         const row = document.createElement('div');
@@ -1195,11 +1277,15 @@
       const defaultCoord = [43.6532, -79.3832];
       walkMap = L.map('walk-map', { zoomControl: false }).setView(defaultCoord, 16);
 
-      // Esri ArcGIS World Street Map: 100% free, no API key, and no "Access blocked" referrer restrictions
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      // Esri ArcGIS World Street Map (Keyless & no referer restrictions)
+      const walkTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 19,
-        attribution: 'Tiles &copy; Esri &mdash; Sources: Esri, DeLorme, USGS, NPS'
-      }).addTo(walkMap);
+        attribution: '&copy; <a href="https://www.esri.com/">Esri</a>'
+      });
+      walkTiles.on('tileerror', function(err) {
+        console.warn('Walk tile load warning:', err);
+      });
+      walkTiles.addTo(walkMap);
 
       const customGpsIcon = L.divIcon({
         className: 'custom-gps-pin',
@@ -1397,11 +1483,15 @@
       const defaultCoord = [43.6532, -79.3832];
       driveMap = L.map('drive-map', { zoomControl: false }).setView(defaultCoord, 15);
 
-      // Esri ArcGIS World Street Map: 100% free, no API key, and no "Access blocked" referrer restrictions
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      // Esri ArcGIS World Street Map (Keyless & no referer restrictions)
+      const driveTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 19,
-        attribution: 'Tiles &copy; Esri &mdash; Sources: Esri, DeLorme, USGS, NPS'
-      }).addTo(driveMap);
+        attribution: '&copy; <a href="https://www.esri.com/">Esri</a>'
+      });
+      driveTiles.on('tileerror', function(err) {
+        console.warn('Drive tile load warning:', err);
+      });
+      driveTiles.addTo(driveMap);
 
       const carPin = L.divIcon({
         className: 'custom-car-pin',
